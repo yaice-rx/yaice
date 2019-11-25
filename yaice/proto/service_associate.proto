@@ -1,0 +1,19 @@
+syntax="proto3";
+package proto;
+
+message c2s_service_associate {
+   //类型名称
+   string typeName = 1;
+   //服务编号
+   string pid = 2;
+}
+
+message s2c_service_associate{
+}
+
+//ping
+message c2s_service_ping{
+}
+
+message s2c_service_ping{
+}
