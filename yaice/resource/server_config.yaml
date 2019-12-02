@@ -7,6 +7,7 @@ IntranetPortEnd: 10200            #内网网络端口结束
 ClusterName: YaIce                #用于Etcd存储key
 IntranetPingService: 2000         #单位ms 内网服务内部Ping
 ExtranetPingService: 5000         #单位ms 外网服务内部Ping
+MaxConnectNumber: 5000            #网络最大连接数
 ExcelFilePath:                    #excel文件路径
 ConfigFilePath: ./yaice/resource/server_config.yaml #资源文件
 LogFilePath:                      #日志文件

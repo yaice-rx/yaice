@@ -7,7 +7,6 @@ import (
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"sync"
 	"time"
-	"yaice/config"
 	"yaice/constant"
 	"yaice/resource"
 )
@@ -15,7 +14,7 @@ import (
 type IEtcd interface {
 	GetData() [][]byte
 	Register(data interface{}) error
-	DelData(key string)error
+	DelData(key string) error
 	Watch()
 	Close()
 }
@@ -24,34 +23,36 @@ var TTL int64 = 20
 
 type Etcd struct {
 	sync.Mutex
-	key 			string
-	Prefix			string
-	conn 			*clientv3.Client
-	leaseRes      	*clientv3.LeaseGrantResponse //自己配置租约
-	keepAliveChan 	<-chan *clientv3.LeaseKeepAliveResponse
+	key           string
+	Prefix        string
+	conn          *clientv3.Client
+	leaseRes      *clientv3.LeaseGrantResponse //自己配置租约
+	keepAliveChan <-chan *clientv3.LeaseKeepAliveResponse
 }
 
 var ClusterEtcdMgr = newService()
+
 //初始服务发现
 func newService() IEtcd {
 	var err error
 	mgr := &Etcd{
-		key:	constant.ServerNamespace+"/"+config.ModuleConfigMgr.GroupName+"/"+config.ModuleConfigMgr.TypeName,
-		Prefix:	constant.ServerNamespace,
+		key:    constant.ServerNamespace + "/" + clusterConfMgr.GroupName + "/" + clusterConfMgr.TypeName,
+		Prefix: constant.ServerNamespace,
 	}
 	config := clientv3.Config{
-		Endpoints: 	 resource.ResourceConfigMgr.EtcdConnectMap,
+		Endpoints:   resource.ResourceConfMgr.EtcdConnectMap,
 		DialTimeout: 5 * time.Second,
 	}
-	mgr.conn,err = clientv3.New(config)
-	if nil != err{
-		return	nil
+	mgr.conn, err = clientv3.New(config)
+	if nil != err {
+		return nil
 	}
 	return mgr
 }
+
 //注册数据到服务上
-func (this *Etcd)Register(data interface{})error{
-	jsonData,err := json.Marshal(data)
+func (this *Etcd) Register(data interface{}) error {
+	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
 	}
@@ -70,18 +71,20 @@ func (this *Etcd)Register(data interface{})error{
 	go this.listenLease()
 	return nil
 }
+
 //删除节点
-func (this *Etcd)DelData(prefixKey string)error{
+func (this *Etcd) DelData(prefixKey string) error {
 	this.Lock()
 	defer this.Unlock()
-	delResponse, err := this.conn.Delete(context.TODO(),prefixKey)
-	if nil != err || len(delResponse.PrevKvs) <= 0{
+	delResponse, err := this.conn.Delete(context.TODO(), prefixKey)
+	if nil != err || len(delResponse.PrevKvs) <= 0 {
 		return err
 	}
 	return nil
 }
+
 //获取节点数据
-func (this *Etcd)GetData()[][]byte{
+func (this *Etcd) GetData() [][]byte {
 	this.Lock()
 	defer this.Unlock()
 	var data [][]byte
@@ -90,12 +93,13 @@ func (this *Etcd)GetData()[][]byte{
 		return nil
 	}
 	for _, value := range this.readData(resp) {
-		data = append(data,value)
+		data = append(data, value)
 	}
 	return data
 }
+
 //观察
-func (this *Etcd)Watch(){
+func (this *Etcd) Watch() {
 	watcher := clientv3.NewWatcher(this.conn)
 	for {
 		rch := watcher.Watch(context.TODO(), this.Prefix, clientv3.WithPrefix())
@@ -114,25 +118,28 @@ func (this *Etcd)Watch(){
 		}
 	}
 }
+
 //关闭
-func (this *Etcd)Close(){
+func (this *Etcd) Close() {
 	this.conn.Close()
 }
+
 //读取节点数据
-func (this *Etcd)readData(resp *clientv3.GetResponse)[][]byte{
+func (this *Etcd) readData(resp *clientv3.GetResponse) [][]byte {
 	var data [][]byte
 	if resp == nil || resp.Kvs == nil {
 		return nil
 	}
 	for i := range resp.Kvs {
 		if v := resp.Kvs[i].Value; v != nil {
-			data = append(data,v)
+			data = append(data, v)
 		}
 	}
 	return data
 }
+
 //授权租期，自动续约
-func (this *Etcd)grantSetLeaseKeepAlive(ttl int64)error{
+func (this *Etcd) grantSetLeaseKeepAlive(ttl int64) error {
 	response, err := this.conn.Lease.Grant(context.TODO(), ttl)
 	if nil != err {
 		return err
@@ -145,8 +152,9 @@ func (this *Etcd)grantSetLeaseKeepAlive(ttl int64)error{
 	this.keepAliveChan = aliveRes
 	return nil
 }
+
 //监测是否续约
-func (this *Etcd)listenLease() {
+func (this *Etcd) listenLease() {
 	for {
 		select {
 		case res := <-this.keepAliveChan:

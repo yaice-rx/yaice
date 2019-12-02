@@ -9,30 +9,31 @@ import (
 /**
  * 资源配置
  */
-type ResourceConfig struct {
+type ResourceConf struct {
 	sync.Mutex
-	EtcdConnectMap 		[]string
-	EtcdNamespace 		string
-	ExtranetPortStart	int
-	ExtranetPortEnd		int
-	ExtranetPingService	int
-	IntranetPortStart	int
-	IntranetPortEnd		int
-	IntranetPingService	int
-	ClusterName			string
-	ExcelFilePath		string
-	ConfigFilePath		string
-	LogFilePath			string
+	EtcdConnectMap      []string
+	EtcdNamespace       string
+	ExtranetPortStart   int
+	ExtranetPortEnd     int
+	ExtranetPingService int
+	IntranetPortStart   int
+	IntranetPortEnd     int
+	IntranetPingService int
+	MaxConnectNumber    int
+	ClusterName         string
+	ExcelFilePath       string
+	ConfigFilePath      string
+	LogFilePath         string
 }
 
 var mutex sync.Mutex
 
-var ResourceConfigMgr = newResourceConf()
+var ResourceConfMgr = newResourceConf()
 
 //初始化资源配置
-func newResourceConf()*ResourceConfig{
+func newResourceConf() *ResourceConf {
 	//初始化
-	serviceConfMgr := &ResourceConfig{}
+	serviceConfMgr := &ResourceConf{}
 	//同步
 	serviceConfMgr.Lock()
 	defer serviceConfMgr.Unlock()

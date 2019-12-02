@@ -3,7 +3,6 @@ package cluster
 import (
 	"encoding/json"
 	"sync"
-	"yaice/config"
 	"yaice/job"
 	"yaice/network"
 	"yaice/network/tcp"
@@ -11,15 +10,21 @@ import (
 	"yaice/router"
 )
 
-//集群客户端接口
+//集群-客户端
 type IClusterClient interface {
+	//注册路由
+	registerRouter()
+	//连接服务
+	connectServices()
 }
 
-//集群客户端
+//集群-客户端
 type clusterClient struct {
 	sync.Mutex
+	//客户端
+	client network.IClient
 	//连接服务的数组	 map[服务类型]map[进程id]连接句柄
-	ModuleClientMap map[string]map[string]network.IConnect
+	ClientList map[string]map[string]network.IConnect
 }
 
 var ClusterClientMgr = newClusterClient()
@@ -27,63 +32,67 @@ var ClusterClientMgr = newClusterClient()
 /**
  * 初始化客户端
  */
-func newClusterClient()IClusterClient{
-	mgr := &clusterClient{
-		ModuleClientMap:make(map[string]map[string]network.IConnect),
+func newClusterClient() IClusterClient {
+	this := &clusterClient{
+		client:     tcp.ClientMgr,
+		ClientList: make(map[string]map[string]network.IConnect),
 	}
-	router.RouterMgr.RegisterInternalRouterFunc(&proto_.S2CServiceAssociate{}, func(conn network.IConnect,content []byte) {
-		//收到消息
-		var data proto_.C2SServiceAssociate
-		if json.Unmarshal(content,&data) != nil{
-			return
-		}
-		//添加服务到列表中
-		var connect map[string]network.IConnect
-		connect[data.Pid] = conn
-		mgr.ModuleClientMap[data.TypeName] = connect
-		//心跳
-		job.Crontab.AddCronTask(10,-1, func() {
-			data,_ := json.Marshal(proto_.C2SServicePing{})
-			if conn.Send(data) != nil {
-				return
-			}
-		})
-		return
-	})
-	mgr.connect()
-	return mgr
+	this.registerRouter()
+	this.connectServices()
+	return this
 }
 
 /**
  * 连接服务
  */
-func (this *clusterClient)connect(){
-	for _,data := range ClusterEtcdMgr.GetData(){
-		var moduleConfig config.ModuleConfig
-		if json.Unmarshal(data,&moduleConfig) != nil{
+func (this *clusterClient) connectServices() {
+	for _, data := range ClusterEtcdMgr.GetData() {
+		//集群配置文件
+		var config clusterConf
+		if json.Unmarshal(data, &config) != nil {
 			break
 		}
-		conn := tcp.ClientMgr.Connect(
-			moduleConfig.InHost,
-			moduleConfig.InPort,
-			)
-		protoData := proto_.C2SServiceAssociate{
-			TypeName:config.ModuleConfigMgr.TypeName,
-			Pid:config.ModuleConfigMgr.Pid,
+		//连接服务句柄
+		conn := this.client.Connect(config.InHost, config.InPort)
+		if conn != nil {
+			break
 		}
-		data,err := json.Marshal(protoData)
-		if err != nil{
+		//发送服务关联协议数据
+		protoData := proto_.C2SServiceAssociate{TypeName: clusterConfMgr.TypeName, Pid: clusterConfMgr.Pid}
+		data, err := json.Marshal(protoData)
+		if err != nil {
 			break
 		}
 		err = conn.Send(data)
-		if err != nil{
+		if err != nil {
 			break
 		}
 	}
 }
 
+/**
+ * 注册路由方法
+ */
+func (this *clusterClient) registerRouter() {
+	router.RouterMgr.RegisterInternalRouterFunc(&proto_.S2CServiceAssociate{}, this.serviceAssociateFunc)
+}
 
-
-
-
-
+func (this *clusterClient) serviceAssociateFunc(conn network.IConnect, content []byte) {
+	var data proto_.C2SServiceAssociate
+	if json.Unmarshal(content, &data) != nil {
+		return
+	}
+	//添加服务到列表中
+	this.Lock()
+	defer this.Unlock()
+	var connect map[string]network.IConnect
+	connect[data.Pid] = conn
+	this.ClientList[data.TypeName] = connect
+	//心跳
+	job.Crontab.AddCronTask(10, -1, func() {
+		data, _ := json.Marshal(proto_.C2SServicePing{})
+		if conn.Send(data) != nil {
+			return
+		}
+	})
+}

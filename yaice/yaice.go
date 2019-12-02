@@ -2,68 +2,67 @@ package yaice
 
 import (
 	"yaice/cluster"
-	"yaice/config"
-	"yaice/network"
 	"yaice/resource"
 	"yaice/router"
 )
 
 type IServer interface {
-	//启动服务器方法
-	Start()
 	//停止服务器方法
 	Stop()
 	//开启业务服务方法
 	Serve()
 }
 
-
 type yaice struct {
-	//选配网络模式
-	networkMgr			network.IServer
-	//模块配置
-	ModuleConfigMgr 	*config.ModuleConfig
 	//路由配置
-	RouterMgr			router.IRouter
-	//系统资源配置
-	ResourceConfigMgr	*resource.ResourceConfig
+	RouterMgr router.IRouter
+	//资源配置
+	resConfMgr *resource.ResourceConf
 	//服务发现
-	ServiceDiscoveryMgr cluster.IEtcd
-	//客户端集群
-	ClusterClientMgr	cluster.IClusterClient
-	//服务器内部
-	ClusterServerMgr 	cluster.IClusterServer
+	etcdMgr cluster.IEtcd
+	//集群-客户端
+	clusterClientMgr cluster.IClusterClient
+	//集群-服务器
+	clusterServerMgr cluster.IClusterServer
 }
 
-
-func NewServer()IServer {
+func NewServer() IServer {
 	return &yaice{
-		//模块配置
-		ModuleConfigMgr:config.ModuleConfigMgr,
 		//路由配置
-		RouterMgr:router.RouterMgr,
+		RouterMgr: router.RouterMgr,
 		//系统资源配置
-		ResourceConfigMgr:resource.ResourceConfigMgr,
+		resConfMgr: resource.ResourceConfMgr,
 		//服务发现
-		ServiceDiscoveryMgr:cluster.ClusterEtcdMgr,
+		etcdMgr: cluster.ClusterEtcdMgr,
 		//客户端集群
-		ClusterClientMgr:cluster.ClusterClientMgr,
+		clusterClientMgr: cluster.ClusterClientMgr,
 		//服务器内部
-		ClusterServerMgr:cluster.ClusterServerMgr,
+		clusterServerMgr: cluster.ClusterServerMgr,
 	}
 }
 
-//开启业务服务方法
-func (this *yaice)Start()  {
-	
+/**
+ * 选择网络
+ */
+func (this *yaice) SelectNetwork(network string) {
+	switch network {
+	case "tcp":
+
+		break
+	case "kcp":
+
+		break
+	default:
+		break
+	}
 }
 
 //停止服务器方法
-func (this *yaice)Stop()  {
+func (this *yaice) Stop() {
 
 }
 
 //启动服务
-func (this *yaice)Serve(){
+func (this *yaice) Serve() {
 
 }
