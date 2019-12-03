@@ -19,21 +19,21 @@ type IServer interface {
 }
 
 type yaice struct {
-	RouterMgr 		 			router.IRouter				//路由配置
-	network 		 			network.IServer				//适配网络
-	serviceResMgr 	 			*resource.ServiceResource	//资源配置
-	serviceDiscoveryMgr 		cluster.IServiceDiscovery	//服务发现
-	clusterClientMgr 			cluster.IClusterClient		//集群-客户端
-	clusterServerMgr 			cluster.IClusterServer		//集群-服务器
+	RouterMgr           router.IRouter            //路由配置
+	network             network.IServer           //适配网络
+	serviceResMgr       *resource.ServiceResource //资源配置
+	serviceDiscoveryMgr cluster.IServiceDiscovery //服务发现
+	clusterClientMgr    cluster.IClusterClient    //集群-客户端
+	clusterServerMgr    cluster.IClusterServer    //集群-服务器
 }
 
 func NewServer() IServer {
 	return &yaice{
-		RouterMgr			: router.RouterMgr,//路由配置
-		serviceResMgr		: resource.ServiceResMgr,//系统资源配置
-		serviceDiscoveryMgr	: cluster.ClusterEtcdMgr,//服务发现
-		clusterClientMgr	: cluster.ClusterClientMgr,//客户端集群
-		clusterServerMgr	: cluster.ClusterServerMgr,//服务器内部
+		RouterMgr:           router.RouterMgr,         //路由配置
+		serviceResMgr:       resource.ServiceResMgr,   //系统资源配置
+		serviceDiscoveryMgr: cluster.ClusterEtcdMgr,   //服务发现
+		clusterClientMgr:    cluster.ClusterClientMgr, //客户端集群
+		clusterServerMgr:    cluster.ClusterServerMgr, //服务器内部
 	}
 }
 
