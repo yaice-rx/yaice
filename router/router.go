@@ -10,14 +10,13 @@ import (
 type IRouter interface {
 	RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConnect, content []byte))
 	CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte)
+	GetRouterList()map[int32]func(conn network.IConnect, content []byte)
 }
 
 type router struct {
 	sync.RWMutex
 	//外部路由
-	ExternalRouterMap map[int32]func(conn network.IConnect, content []byte)
-	//内部路由
-	InternalRouterMap map[int32]func(conn network.IConnect, content []byte)
+	RouterMap map[int32]func(conn network.IConnect, content []byte)
 }
 
 var RouterMgr = newRouter()
@@ -32,12 +31,18 @@ func (this *router) RegisterRouterFunc(msgObj proto.Message, handler func(conn n
 	defer this.Unlock()
 	msgName := utils.GetProtoName(msgObj)
 	protocolNum := utils.ProtocalNumber(msgName)
-	this.ExternalRouterMap[protocolNum] = handler
+	this.RouterMap[protocolNum] = handler
 }
 
 //调用内部方法
 func (this *router) CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte) {
 	this.RLocker()
 	defer this.RUnlock()
-	return this.InternalRouterMap[msgId]
+	return this.RouterMap[msgId]
+}
+
+func (this *router)GetRouterList() map[int32]func(conn network.IConnect, content []byte){
+	this.RLocker()
+	defer this.RUnlock()
+	return this.RouterMap
 }

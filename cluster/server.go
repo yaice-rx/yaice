@@ -38,7 +38,7 @@ func newClusterServer() IClusterServer {
 	//注册服务
 	mgr.registerRouter()
 	//启动监听service端口
-	for i := resource.ResourceConfMgr.IntranetPortStart; i <= resource.ResourceConfMgr.IntranetPortEnd; i++ {
+	for i := resource.ServiceResMgr.IntranetPortStart; i <= resource.ServiceResMgr.IntranetPortEnd; i++ {
 		if mgr.service.Start(i) != nil {
 			clusterConfMgr.InPort = i
 		}

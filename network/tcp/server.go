@@ -57,7 +57,7 @@ func (this *server) Start(port int) error {
 			dealConn := NewConnect(conn)
 			this.ConnectsMgr.Add(dealConn)
 			//如果当前连接数大于最大的连接数，则退出
-			if this.ConnectsMgr.Len() > resource.ResourceConfMgr.MaxConnectNumber {
+			if this.ConnectsMgr.Len() > resource.ServiceResMgr.MaxConnectNumber {
 				this.listener.Close()
 				continue
 			}

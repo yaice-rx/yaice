@@ -11,7 +11,7 @@ import (
 	"yaice/resource"
 )
 
-type IEtcd interface {
+type IServiceDiscovery interface {
 	GetData() [][]byte
 	Register(data interface{}) error
 	DelData(key string) error
@@ -21,7 +21,7 @@ type IEtcd interface {
 
 var TTL int64 = 20
 
-type Etcd struct {
+type ServiceDiscovery struct {
 	sync.Mutex
 	key           string
 	Prefix        string
@@ -33,14 +33,14 @@ type Etcd struct {
 var ClusterEtcdMgr = newService()
 
 //初始服务发现
-func newService() IEtcd {
+func newService() IServiceDiscovery {
 	var err error
-	mgr := &Etcd{
+	mgr := &ServiceDiscovery{
 		key:    constant.ServerNamespace + "/" + clusterConfMgr.GroupName + "/" + clusterConfMgr.TypeName,
 		Prefix: constant.ServerNamespace,
 	}
 	config := clientv3.Config{
-		Endpoints:   resource.ResourceConfMgr.EtcdConnectMap,
+		Endpoints:   resource.ServiceResMgr.EtcdConnectMap,
 		DialTimeout: 5 * time.Second,
 	}
 	mgr.conn, err = clientv3.New(config)
@@ -51,7 +51,7 @@ func newService() IEtcd {
 }
 
 //注册数据到服务上
-func (this *Etcd) Register(data interface{}) error {
+func (this *ServiceDiscovery) Register(data interface{}) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (this *Etcd) Register(data interface{}) error {
 }
 
 //删除节点
-func (this *Etcd) DelData(prefixKey string) error {
+func (this *ServiceDiscovery) DelData(prefixKey string) error {
 	this.Lock()
 	defer this.Unlock()
 	delResponse, err := this.conn.Delete(context.TODO(), prefixKey)
@@ -84,7 +84,7 @@ func (this *Etcd) DelData(prefixKey string) error {
 }
 
 //获取节点数据
-func (this *Etcd) GetData() [][]byte {
+func (this *ServiceDiscovery) GetData() [][]byte {
 	this.Lock()
 	defer this.Unlock()
 	var data [][]byte
@@ -99,7 +99,7 @@ func (this *Etcd) GetData() [][]byte {
 }
 
 //观察
-func (this *Etcd) Watch() {
+func (this *ServiceDiscovery) Watch() {
 	watcher := clientv3.NewWatcher(this.conn)
 	for {
 		rch := watcher.Watch(context.TODO(), this.Prefix, clientv3.WithPrefix())
@@ -120,12 +120,12 @@ func (this *Etcd) Watch() {
 }
 
 //关闭
-func (this *Etcd) Close() {
+func (this *ServiceDiscovery) Close() {
 	this.conn.Close()
 }
 
 //读取节点数据
-func (this *Etcd) readData(resp *clientv3.GetResponse) [][]byte {
+func (this *ServiceDiscovery) readData(resp *clientv3.GetResponse) [][]byte {
 	var data [][]byte
 	if resp == nil || resp.Kvs == nil {
 		return nil
@@ -139,7 +139,7 @@ func (this *Etcd) readData(resp *clientv3.GetResponse) [][]byte {
 }
 
 //授权租期，自动续约
-func (this *Etcd) grantSetLeaseKeepAlive(ttl int64) error {
+func (this *ServiceDiscovery) grantSetLeaseKeepAlive(ttl int64) error {
 	response, err := this.conn.Lease.Grant(context.TODO(), ttl)
 	if nil != err {
 		return err
@@ -154,7 +154,7 @@ func (this *Etcd) grantSetLeaseKeepAlive(ttl int64) error {
 }
 
 //监测是否续约
-func (this *Etcd) listenLease() {
+func (this *ServiceDiscovery) listenLease() {
 	for {
 		select {
 		case res := <-this.keepAliveChan:
