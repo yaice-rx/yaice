@@ -1,8 +1,8 @@
 package tcp
 
 import (
+	"github.com/yaice-rx/yaice/network"
 	"sync"
-	"yaice/network"
 )
 
 type ConnManager struct {

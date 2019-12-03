@@ -2,12 +2,12 @@ package cluster
 
 import (
 	"encoding/json"
+	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/network/tcp"
+	"github.com/yaice-rx/yaice/proto"
+	"github.com/yaice-rx/yaice/resource"
+	"github.com/yaice-rx/yaice/router"
 	"sync"
-	"yaice/network"
-	"yaice/network/tcp"
-	"yaice/proto"
-	"yaice/resource"
-	"yaice/router"
 )
 
 /**

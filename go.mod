@@ -1,4 +1,4 @@
-module yaice
+module github.com/yaice-rx/yaice
 
 go 1.13
 

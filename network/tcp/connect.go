@@ -2,10 +2,10 @@ package tcp
 
 import (
 	"github.com/satori/go.uuid"
+	"github.com/yaice-rx/yaice/network"
 	"net"
 	"sync"
 	"time"
-	"yaice/network"
 )
 
 type Connect struct {

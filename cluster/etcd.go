@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
+	"github.com/yaice-rx/yaice/constant"
+	"github.com/yaice-rx/yaice/resource"
 	"sync"
 	"time"
-	"yaice/constant"
-	"yaice/resource"
 )
 
 type IServiceDiscovery interface {

@@ -2,11 +2,11 @@ package yaice
 
 import (
 	"errors"
-	"yaice/cluster"
-	"yaice/network"
-	"yaice/network/tcp"
-	"yaice/resource"
-	"yaice/router"
+	"github.com/yaice-rx/yaice/cluster"
+	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/network/tcp"
+	"github.com/yaice-rx/yaice/resource"
+	"github.com/yaice-rx/yaice/router"
 )
 
 type IServer interface {

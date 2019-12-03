@@ -2,15 +2,15 @@ package router
 
 import (
 	"github.com/golang/protobuf/proto"
+	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/utils"
 	"sync"
-	"yaice/network"
-	"yaice/utils"
 )
 
 type IRouter interface {
 	RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConnect, content []byte))
 	CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte)
-	GetRouterList()map[int32]func(conn network.IConnect, content []byte)
+	GetRouterList() map[int32]func(conn network.IConnect, content []byte)
 }
 
 type router struct {
@@ -41,7 +41,7 @@ func (this *router) CallRouterFunc(msgId int32) func(conn network.IConnect, cont
 	return this.RouterMap[msgId]
 }
 
-func (this *router)GetRouterList() map[int32]func(conn network.IConnect, content []byte){
+func (this *router) GetRouterList() map[int32]func(conn network.IConnect, content []byte) {
 	this.RLocker()
 	defer this.RUnlock()
 	return this.RouterMap

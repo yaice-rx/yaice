@@ -1,9 +1,9 @@
 package tcp
 
 import (
+	"github.com/yaice-rx/yaice/network"
 	"net"
 	"sync"
-	"yaice/network"
 )
 
 type client struct {

@@ -1,14 +1,14 @@
 package tcp
 
 import (
+	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/resource"
+	router_ "github.com/yaice-rx/yaice/router"
+	"github.com/yaice-rx/yaice/utils"
 	"io"
 	"net"
 	"strconv"
 	"sync"
-	"yaice/network"
-	"yaice/resource"
-	router_ "yaice/router"
-	"yaice/utils"
 )
 
 type server struct {

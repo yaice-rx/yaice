@@ -2,12 +2,12 @@ package cluster
 
 import (
 	"encoding/json"
+	"github.com/yaice-rx/yaice/job"
+	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/network/tcp"
+	proto_ "github.com/yaice-rx/yaice/proto"
+	"github.com/yaice-rx/yaice/router"
 	"sync"
-	"yaice/job"
-	"yaice/network"
-	"yaice/network/tcp"
-	proto_ "yaice/proto"
-	"yaice/router"
 )
 
 //集群-客户端
