@@ -74,7 +74,7 @@ func (this *clusterClient) connectServices() {
  * 注册路由方法
  */
 func (this *clusterClient) registerRouter() {
-	router.RouterMgr.RegisterInternalRouterFunc(&proto_.S2CServiceAssociate{}, this.serviceAssociateFunc)
+	router.RouterMgr.RegisterRouterFunc(&proto_.S2CServiceAssociate{}, this.serviceAssociateFunc)
 }
 
 func (this *clusterClient) serviceAssociateFunc(conn network.IConnect, content []byte) {
