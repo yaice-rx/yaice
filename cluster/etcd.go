@@ -30,10 +30,10 @@ type ClusterDiscovery struct {
 	keepAliveChan <-chan *clientv3.LeaseKeepAliveResponse
 }
 
-var ClusterEtcdMgr = newService()
+var ClusterEtcdMgr = newClusterDiscovery()
 
 //初始服务发现
-func newService() IClusterDiscovery {
+func newClusterDiscovery() IClusterDiscovery {
 	var err error
 	mgr := &ClusterDiscovery{
 		key:    constant.ServerNamespace + "/" + ClusterConfMgr.GroupId + "/" + ClusterConfMgr.TypeId,
