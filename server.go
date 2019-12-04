@@ -12,7 +12,7 @@ import (
 
 type IServer interface {
 	//适配网络
-	AdaptationNetwork(network string)
+	AdaptationNetwork(network string) network.IServer
 	//开启业务服务方法
 	Serve() error
 	//停止服务器方法
@@ -41,7 +41,7 @@ func NewServer() IServer {
 /**
  * 适配网络
  */
-func (this *yaice) AdaptationNetwork(network string) {
+func (this *yaice) AdaptationNetwork(network string) network.IServer {
 	switch network {
 	case "tcp":
 		this.Network = tcp.TcpServerMgr
@@ -56,6 +56,7 @@ func (this *yaice) AdaptationNetwork(network string) {
 	default:
 		break
 	}
+	return this.Network
 }
 
 //启动服务
