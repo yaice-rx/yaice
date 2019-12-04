@@ -9,7 +9,7 @@ import (
 
 type IRouter interface {
 	RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConnect, content []byte))
-	CallRouterFunc(msgObj proto.Message) func(conn network.IConnect, content []byte)
+	CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte)
 	GetRouterList() map[int32]func(conn network.IConnect, content []byte)
 }
 
@@ -35,11 +35,9 @@ func (this *router) RegisterRouterFunc(msgObj proto.Message, handler func(conn n
 }
 
 //调用内部方法
-func (this *router) CallRouterFunc(msgObj proto.Message) func(conn network.IConnect, content []byte) {
+func (this *router) CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte) {
 	this.RLocker()
 	defer this.RUnlock()
-	msgName := utils.GetProtoName(msgObj)
-	msgId := utils.ProtocalNumber(msgName)
 	return this.RouterMap[msgId]
 }
 
