@@ -34,6 +34,10 @@ func newTcpServer() network.IServer {
 	return serve
 }
 
+func (this *server) AddRouter() {
+
+}
+
 /**
  * 开启网络服务
  */
