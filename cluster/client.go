@@ -24,7 +24,7 @@ type clusterClient struct {
 	//客户端
 	client network.IClient
 	//连接服务的数组	 map[服务类型]map[进程id]连接句柄
-	ClientList map[string]map[string]network.IConnect
+	ClientList map[string]map[int64]network.IConnect
 }
 
 var ClusterClientMgr = newClusterClient()
@@ -35,7 +35,7 @@ var ClusterClientMgr = newClusterClient()
 func newClusterClient() IClusterClient {
 	this := &clusterClient{
 		client:     tcp.ClientMgr,
-		ClientList: make(map[string]map[string]network.IConnect),
+		ClientList: make(map[string]map[int64]network.IConnect),
 	}
 	this.registerRouter()
 	this.connectServices()
@@ -58,7 +58,7 @@ func (this *clusterClient) connectServices() {
 			break
 		}
 		//发送服务关联协议数据
-		protoData := proto_.C2SServiceAssociate{TypeName: clusterConfMgr.TypeName, Pid: clusterConfMgr.Pid}
+		protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
 		data, err := json.Marshal(protoData)
 		if err != nil {
 			break
@@ -85,7 +85,7 @@ func (this *clusterClient) serviceAssociateFunc(conn network.IConnect, content [
 	//添加服务到列表中
 	this.Lock()
 	defer this.Unlock()
-	var connect map[string]network.IConnect
+	var connect map[int64]network.IConnect
 	connect[data.Pid] = conn
 	this.ClientList[data.TypeName] = connect
 	//心跳

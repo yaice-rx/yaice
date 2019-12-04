@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type IServiceDiscovery interface {
+type IClusterDiscovery interface {
 	GetData() [][]byte
 	Register(data interface{}) error
 	DelData(key string) error
@@ -21,7 +21,7 @@ type IServiceDiscovery interface {
 
 var TTL int64 = 20
 
-type ServiceDiscovery struct {
+type ClusterDiscovery struct {
 	sync.Mutex
 	key           string
 	Prefix        string
@@ -33,10 +33,10 @@ type ServiceDiscovery struct {
 var ClusterEtcdMgr = newService()
 
 //初始服务发现
-func newService() IServiceDiscovery {
+func newService() IClusterDiscovery {
 	var err error
-	mgr := &ServiceDiscovery{
-		key:    constant.ServerNamespace + "/" + clusterConfMgr.GroupName + "/" + clusterConfMgr.TypeName,
+	mgr := &ClusterDiscovery{
+		key:    constant.ServerNamespace + "/" + ClusterConfMgr.GroupId + "/" + ClusterConfMgr.TypeId,
 		Prefix: constant.ServerNamespace,
 	}
 	config := clientv3.Config{
@@ -51,7 +51,7 @@ func newService() IServiceDiscovery {
 }
 
 //注册数据到服务上
-func (this *ServiceDiscovery) Register(data interface{}) error {
+func (this *ClusterDiscovery) Register(data interface{}) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return err
@@ -73,7 +73,7 @@ func (this *ServiceDiscovery) Register(data interface{}) error {
 }
 
 //删除节点
-func (this *ServiceDiscovery) DelData(prefixKey string) error {
+func (this *ClusterDiscovery) DelData(prefixKey string) error {
 	this.Lock()
 	defer this.Unlock()
 	delResponse, err := this.conn.Delete(context.TODO(), prefixKey)
@@ -84,7 +84,7 @@ func (this *ServiceDiscovery) DelData(prefixKey string) error {
 }
 
 //获取节点数据
-func (this *ServiceDiscovery) GetData() [][]byte {
+func (this *ClusterDiscovery) GetData() [][]byte {
 	this.Lock()
 	defer this.Unlock()
 	var data [][]byte
@@ -99,7 +99,7 @@ func (this *ServiceDiscovery) GetData() [][]byte {
 }
 
 //观察
-func (this *ServiceDiscovery) Watch() {
+func (this *ClusterDiscovery) Watch() {
 	watcher := clientv3.NewWatcher(this.conn)
 	for {
 		rch := watcher.Watch(context.TODO(), this.Prefix, clientv3.WithPrefix())
@@ -120,12 +120,12 @@ func (this *ServiceDiscovery) Watch() {
 }
 
 //关闭
-func (this *ServiceDiscovery) Close() {
+func (this *ClusterDiscovery) Close() {
 	this.conn.Close()
 }
 
 //读取节点数据
-func (this *ServiceDiscovery) readData(resp *clientv3.GetResponse) [][]byte {
+func (this *ClusterDiscovery) readData(resp *clientv3.GetResponse) [][]byte {
 	var data [][]byte
 	if resp == nil || resp.Kvs == nil {
 		return nil
@@ -139,7 +139,7 @@ func (this *ServiceDiscovery) readData(resp *clientv3.GetResponse) [][]byte {
 }
 
 //授权租期，自动续约
-func (this *ServiceDiscovery) grantSetLeaseKeepAlive(ttl int64) error {
+func (this *ClusterDiscovery) grantSetLeaseKeepAlive(ttl int64) error {
 	response, err := this.conn.Lease.Grant(context.TODO(), ttl)
 	if nil != err {
 		return err
@@ -154,7 +154,7 @@ func (this *ServiceDiscovery) grantSetLeaseKeepAlive(ttl int64) error {
 }
 
 //监测是否续约
-func (this *ServiceDiscovery) listenLease() {
+func (this *ClusterDiscovery) listenLease() {
 	for {
 		select {
 		case res := <-this.keepAliveChan:

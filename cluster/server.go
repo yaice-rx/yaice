@@ -5,15 +5,11 @@ import (
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/proto"
-	"github.com/yaice-rx/yaice/resource"
 	"github.com/yaice-rx/yaice/router"
 	"sync"
 )
 
-/**
- * 集群服务
- */
-
+// 集群服务
 type IClusterServer interface {
 	registerRouter()
 }
@@ -22,7 +18,7 @@ type clusterServer struct {
 	sync.RWMutex
 	service network.IServer
 	//服务连接集群列表	map[服务类型]map[进程id]连接句柄
-	ServiceList map[string]map[string]network.IConnect
+	ServiceList map[string]map[int64]network.IConnect
 }
 
 var ClusterServerMgr = newClusterServer()
@@ -33,15 +29,13 @@ var ClusterServerMgr = newClusterServer()
 func newClusterServer() IClusterServer {
 	mgr := &clusterServer{
 		service:     tcp.TcpServerMgr,
-		ServiceList: make(map[string]map[string]network.IConnect),
+		ServiceList: make(map[string]map[int64]network.IConnect),
 	}
 	//注册服务
 	mgr.registerRouter()
 	//启动监听service端口
-	for i := resource.ServiceResMgr.IntranetPortStart; i <= resource.ServiceResMgr.IntranetPortEnd; i++ {
-		if mgr.service.Start(i) != nil {
-			clusterConfMgr.InPort = i
-		}
+	if port, err := mgr.service.Start(); err == nil {
+		ClusterConfMgr.InPort = port
 	}
 	return mgr
 }
@@ -60,7 +54,7 @@ func (this *clusterServer) serviceAssociateFunc(conn network.IConnect, content [
 	if json.Unmarshal(content, &data) != nil {
 		return
 	}
-	var connect map[string]network.IConnect
+	var connect map[int64]network.IConnect
 	connect[data.Pid] = conn
 	this.ServiceList[data.TypeName] = connect
 }

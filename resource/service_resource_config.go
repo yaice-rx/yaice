@@ -13,11 +13,11 @@ type ServiceResource struct {
 	sync.Mutex
 	EtcdConnectMap      []string
 	EtcdNamespace       string
-	ExtranetPortStart   int
-	ExtranetPortEnd     int
+	PortStart           int
+	PortEnd             int
 	ExtranetPingService int
-	IntranetPortStart   int
-	IntranetPortEnd     int
+	ExtranetHost        string
+	IntranetHost        string
 	IntranetPingService int
 	MaxConnectNumber    int
 	HttpPort            int

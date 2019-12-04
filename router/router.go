@@ -36,6 +36,7 @@ func newRouter() IRouter {
 func (this *router) RegisterHttpHandlerFunc(router string, handler func(write http.ResponseWriter, request *http.Request)) {
 	this.Lock()
 	defer this.Unlock()
+	this.httpHandlerMap[router] = handler
 }
 
 func (this *router) GetHttpHandlerMap() map[string]func(write http.ResponseWriter, request *http.Request) {

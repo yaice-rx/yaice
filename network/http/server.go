@@ -29,17 +29,18 @@ func (this *httpServer) GetNetwork() string {
 	return this.network
 }
 
-func (this *httpServer) Start() error {
+func (this *httpServer) Start() (int, error) {
 	mux := http.NewServeMux()
 	for router, handler := range router_.RouterMgr.GetHttpHandlerMap() {
 		mux.HandleFunc(router, handler)
 	}
 	this.server.Handler = mux
+	port := resource.ServiceResMgr.HttpPort
 	//开启监听
-	this.server.Addr = ":" + strconv.Itoa(resource.ServiceResMgr.HttpPort)
+	this.server.Addr = ":" + strconv.Itoa(port)
 	//开启http网络
 	go this.server.ListenAndServe()
-	return nil
+	return port, nil
 }
 
 func (this *httpServer) Close() {

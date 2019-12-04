@@ -43,8 +43,8 @@ func (this *server) GetNetwork() string {
 }
 
 // 开启网络服务
-func (this *server) Start() error {
-	for i := resource.ServiceResMgr.ExtranetPortStart; i < resource.ServiceResMgr.ExtranetPortEnd; i++ {
+func (this *server) Start() (int, error) {
+	for i := resource.ServiceResMgr.PortStart; i < resource.ServiceResMgr.PortEnd; i++ {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
 		if nil != err {
 			break
@@ -88,9 +88,9 @@ func (this *server) Start() error {
 				}(conn)
 			}
 		}()
-		return nil
+		return i, nil
 	}
-	return errors.New("tcp port not found")
+	return -1, errors.New("tcp port not found")
 }
 
 //读取网络数据
