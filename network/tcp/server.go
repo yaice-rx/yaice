@@ -13,6 +13,7 @@ import (
 
 type server struct {
 	sync.Mutex
+	network  string
 	listener *net.TCPListener
 	//连接列表
 	ConnectsMgr network.IConnectList
@@ -29,18 +30,18 @@ var TcpServerMgr = newTcpServer()
  */
 func newTcpServer() network.IServer {
 	serve := &server{
+		network:     "tcp",
 		ConnectsMgr: NewConnManager(),
 	}
 	return serve
 }
 
-func (this *server) AddRouter() {
-
+//获取网络连接名称
+func (this *server) GetNetwork() string {
+	return this.network
 }
 
-/**
- * 开启网络服务
- */
+// 开启网络服务
 func (this *server) Start(port int) error {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(port))
 	if nil != err {
@@ -85,12 +86,11 @@ func (this *server) Start(port int) error {
 			}(conn)
 		}
 	}()
+
 	return nil
 }
 
-/**
- * 读取网络数据
- */
+//读取网络数据
 func (this *server) Run() {
 	go func() {
 		for {
@@ -111,9 +111,7 @@ func (this *server) Run() {
 	}()
 }
 
-/**
- * 关闭网络接口
- */
+// 关闭网络接口
 func (this *server) Close() {
 	this.Lock()
 	defer this.Unlock()

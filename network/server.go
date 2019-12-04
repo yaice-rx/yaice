@@ -1,8 +1,8 @@
 package network
 
 type IServer interface {
-	//添加路由
-	AddRouter()
+	//获取网络连接名称
+	GetNetwork() string
 	//监听端口
 	Start(port int) error
 	//关闭
