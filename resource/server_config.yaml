@@ -2,6 +2,7 @@ EtcdConnectString: 127.0.0.1:2379 #etcd连接地址 如果是连接多个地址�
 EtcdNameSpace: YaIce_Service      #命名空间
 ExtranetPortStart: 10001          #网络端口开始
 ExtranetPortEnd: 10100            #网络端口结束
+HttpPort: 8888                    #http网络接口
 IntranetPortStart: 10101          #内网网络端口开始
 IntranetPortEnd: 10200            #内网网络端口结束
 ClusterName: YaIce                #用于Etcd存储key

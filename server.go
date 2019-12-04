@@ -77,16 +77,11 @@ func (this *yaice) Serve() error {
 	if this.network == nil {
 		running <- true
 	}
-	startStatus := false
-	for i := this.serviceResMgr.ExtranetPortStart; i < this.serviceResMgr.ExtranetPortEnd; i++ {
-		if err := this.network.Start(i); err == nil {
-			startStatus = true
-			break
-		}
-	}
-	if !startStatus {
+	//开启网络
+	if err := this.network.Start(); err != nil {
 		running <- true
 	}
+	//退出运行
 	<-running
 	return nil
 }

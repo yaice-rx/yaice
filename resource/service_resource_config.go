@@ -20,6 +20,7 @@ type ServiceResource struct {
 	IntranetPortEnd     int
 	IntranetPingService int
 	MaxConnectNumber    int
+	HttpPort            int
 	ClusterName         string
 	ExcelFilePath       string
 	ConfigFilePath      string
