@@ -7,6 +7,7 @@ import (
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/yaice-rx/yaice/constant"
 	"github.com/yaice-rx/yaice/resource"
+	"strings"
 	"sync"
 	"time"
 )
@@ -40,7 +41,7 @@ func newClusterDiscovery() IClusterDiscovery {
 		Prefix: constant.ServerNamespace,
 	}
 	config := clientv3.Config{
-		Endpoints:   resource.ServiceResMgr.EtcdConnectMap,
+		Endpoints:   strings.Split(resource.ServiceResMgr.EtcdConnectMap, ";"),
 		DialTimeout: 5 * time.Second,
 	}
 	mgr.conn, err = clientv3.New(config)
