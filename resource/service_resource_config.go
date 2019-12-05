@@ -11,17 +11,17 @@ import (
  */
 type ServiceResource struct {
 	sync.Mutex
-	EtcdConnectMap      []string
+	EtcdConnectMap      string
 	EtcdNamespace       string
 	PortStart           int
 	PortEnd             int
-	ExtranetPingService int
-	ExtranetHost        string
-	IntranetHost        string
-	IntranetPingService int
-	MaxConnectNumber    int
 	HttpPort            int
 	ClusterName         string
+	IntranetHost        string
+	ExtranetHost        string
+	IntranetPingService int
+	ExtranetPingService int
+	MaxConnectNumber    int
 	ExcelFilePath       string
 	ConfigFilePath      string
 	LogFilePath         string
@@ -39,7 +39,7 @@ func newServiceRes() *ServiceResource {
 	this.Lock()
 	defer this.Unlock()
 	//读取文件数据
-	fileData, err := ioutil.ReadFile("../resource/server_config.yaml")
+	fileData, err := ioutil.ReadFile("./resource/server_config.yaml")
 	if err != nil {
 		return nil
 	}
