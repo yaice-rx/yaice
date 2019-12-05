@@ -1,6 +1,7 @@
 package yaice
 
 import (
+	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/cluster"
 	"github.com/yaice-rx/yaice/network"
@@ -79,12 +80,12 @@ func (this *yaice) AddHttpHandler(router string, handler func(write http.Respons
 //启动服务
 func (this *yaice) Serve() error {
 	if this.network == nil {
-		running <- true
+		return errors.New("Please select a network")
 	}
 	//开启网络
 	port, err := this.network.Start()
 	if err != nil {
-		running <- true
+		return errors.New("network start fail,[error :" + err.Error() + " ]")
 	}
 	cluster.ClusterConfMgr.OutHost = this.serviceResMgr.ExtranetHost
 	cluster.ClusterConfMgr.InHost = this.serviceResMgr.IntranetHost
