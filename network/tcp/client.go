@@ -1,10 +1,11 @@
 package tcp
 
 import (
+	"bufio"
+	"fmt"
 	"github.com/yaice-rx/yaice/network"
 	"net"
 	"sync"
-	"bufio"
 )
 
 type client struct {
@@ -35,24 +36,25 @@ func (this *client) Connect(IP string, port int) network.IConnect {
 	if err != nil {
 		return nil
 	}
+	go this.receivePackets()
 	return NewConnect(conn)
 }
 
-
 // 接收数据包
-func (this *client)receivePackets()  {
-	reader := bufio.NewReader(this.connection)
+func (this *client) receivePackets() {
+	reader := bufio.NewReader(this.conn)
 	for {
 		//承接上面说的服务器端的偷懒，我这里读也只是以\n为界限来读区分包
 		msg, err := reader.ReadString('\n')
 		if err != nil {
 			//在这里也请处理如果服务器关闭时的异常
-			close(client.stopChan)
+			//close(client.stopChan)
 			break
 		}
-		fmt.Print(msg)
+		fmt.Println(msg)
 	}
 }
+
 /**
  * 停止
  */
