@@ -108,8 +108,8 @@ func (this *server) Run() {
 				}
 				break
 			//调用网络流
-			case data := <-this.sendMsgChan:
-				go data.Conn.Send(data.Data)
+			case <-this.sendMsgChan:
+				//go data.Conn.Send(data.Data)
 				break
 			}
 		}
