@@ -38,17 +38,20 @@ type yaice struct {
 	clusterServerMgr    cluster.IClusterServer    //集群-服务器
 }
 
-func NewServer(typeId string, groundId string) IServer {
+func NewServer(typeId string, groundId string, allowConn bool) IServer {
 	cluster.ClusterConfMgr.Pid = os.Getpid()
 	cluster.ClusterConfMgr.TypeId = typeId
 	cluster.ClusterConfMgr.GroupId = groundId
-	return &yaice{
+	cluster.ClusterConfMgr.AllowConnect = allowConn
+	server := &yaice{
 		routerMgr:           router.RouterMgr,         //路由配置
 		serviceResMgr:       resource.ServiceResMgr,   //系统资源配置
 		clusterDiscoveryMgr: cluster.ClusterEtcdMgr,   //服务发现
 		clusterClientMgr:    cluster.ClusterClientMgr, //客户端集群
 		clusterServerMgr:    cluster.ClusterServerMgr, //服务器内部
 	}
+	server.clusterDiscoveryMgr.SetKey()
+	return server
 }
 
 //适配网络

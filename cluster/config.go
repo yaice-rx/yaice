@@ -9,7 +9,8 @@ type clusterConf struct {
 	OutPort            int      //外部连接端口
 	InHost             string   //内部连接ip
 	InPort             int      //内部连接端口
-	Network            string
+	Network            string   //网络连接方式
+	AllowConnect       bool     //准入连接
 }
 
 var ClusterConfMgr = newClusterConf()

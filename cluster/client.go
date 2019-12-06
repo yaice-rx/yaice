@@ -12,10 +12,6 @@ import (
 
 //集群-客户端
 type IClusterClient interface {
-	//注册路由
-	registerRouter()
-	//连接服务
-	connectServices()
 }
 
 //集群-客户端
@@ -50,22 +46,28 @@ func (this *clusterClient) connectServices() {
 		//集群配置文件
 		var config clusterConf
 		if json.Unmarshal(data, &config) != nil {
-			break
+			continue
 		}
-		//连接服务句柄
-		conn := this.client.Connect(config.InHost, config.InPort)
-		if conn != nil {
-			break
+		//首先判读服务是否属于自己
+		if config.TypeId == ClusterConfMgr.TypeId {
+			continue
 		}
-		//发送服务关联协议数据
-		protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
-		data, err := json.Marshal(protoData)
-		if err != nil {
-			break
-		}
-		err = conn.Send(data)
-		if err != nil {
-			break
+		if config.AllowConnect {
+			//连接服务句柄
+			conn := this.client.Connect(config.InHost, config.InPort)
+			if conn == nil {
+				continue
+			}
+			//发送服务关联协议数据
+			protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
+			data, err := json.Marshal(protoData)
+			if err != nil {
+				continue
+			}
+			err = conn.Send(data)
+			if err != nil {
+				continue
+			}
 		}
 	}
 }

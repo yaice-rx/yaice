@@ -31,8 +31,10 @@ var TcpServerMgr = newTcpServer()
  */
 func newTcpServer() network.IServer {
 	serve := &server{
-		network:     "tcp",
-		ConnectsMgr: NewConnManager(),
+		network:        "tcp",
+		ConnectsMgr:    NewConnManager(),
+		sendMsgChan:    make(chan *network.Msg),
+		receiveMsgChan: make(chan *network.Msg),
 	}
 	return serve
 }
@@ -47,11 +49,11 @@ func (this *server) Start() (int, error) {
 	for i := resource.ServiceResMgr.PortStart; i < resource.ServiceResMgr.PortEnd; i++ {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
 		if nil != err {
-			break
+			continue
 		}
 		listener, err := net.ListenTCP("tcp", tcpAddr)
 		if nil != err {
-			break
+			continue
 		}
 		this.listener = listener
 		go func() {

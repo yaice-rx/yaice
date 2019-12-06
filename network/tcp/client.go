@@ -31,7 +31,7 @@ func (this *client) Connect(IP string, port int) network.IConnect {
 		Port: port,
 	}
 	conn, err := net.DialTCP("tcp", nil, addr)
-	if err == nil {
+	if err != nil {
 		return nil
 	}
 	return NewConnect(conn)

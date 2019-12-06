@@ -2,6 +2,7 @@ package cluster
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/proto"
@@ -45,6 +46,7 @@ func newClusterServer() IClusterServer {
  */
 func (this *clusterServer) registerRouter() {
 	router.RouterMgr.RegisterRouterFunc(&proto.C2SServiceAssociate{}, this.serviceAssociateFunc)
+	router.RouterMgr.RegisterRouterFunc(&proto.C2SServicePing{}, this.servicePingFunc)
 }
 
 func (this *clusterServer) serviceAssociateFunc(conn network.IConnect, content []byte) {
@@ -57,4 +59,8 @@ func (this *clusterServer) serviceAssociateFunc(conn network.IConnect, content [
 	var connect map[int64]network.IConnect
 	connect[data.Pid] = conn
 	this.ServiceList[data.TypeName] = connect
+}
+
+func (this *clusterServer) servicePingFunc(conn network.IConnect, content []byte) {
+	fmt.Println("ping =================== ")
 }

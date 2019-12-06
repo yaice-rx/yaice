@@ -22,7 +22,7 @@ func newHttpServer() network.IServer {
 		network: "http",
 	}
 	srv.server = &http.Server{}
-	return nil
+	return srv
 }
 
 func (this *httpServer) GetNetwork() string {
@@ -31,8 +31,10 @@ func (this *httpServer) GetNetwork() string {
 
 func (this *httpServer) Start() (int, error) {
 	mux := http.NewServeMux()
-	for router, handler := range router_.RouterMgr.GetHttpHandlerMap() {
-		mux.HandleFunc(router, handler)
+	if router_.RouterMgr.GetHttpHandlerCount() > 0 {
+		for r_key, handler := range router_.RouterMgr.GetHttpHandlerMap() {
+			mux.HandleFunc(r_key, handler)
+		}
 	}
 	this.server.Handler = mux
 	port := resource.ServiceResMgr.HttpPort

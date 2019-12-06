@@ -1,8 +1,11 @@
 package tcp
 
 import (
+	"encoding/json"
+	"github.com/golang/protobuf/proto"
 	"github.com/satori/go.uuid"
 	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/utils"
 	"net"
 	"sync"
 	"time"
@@ -36,10 +39,14 @@ func (this *Connect) GetGuid() string {
 /**
  * 发送消息
  */
-func (this *Connect) Send(data []byte) error {
+func (this *Connect) Send(message proto.Message) error {
+	protoNumber := utils.ProtocalNumber(utils.GetProtoName(message))
+	data, err := json.Marshal(message)
+	msg := utils.IntToBytes(protoNumber)
+	msg = append(msg, data...)
 	this.sendGuard.Lock()
 	defer this.sendGuard.Unlock()
-	_, err := this.session.Write(data)
+	_, err = this.session.Write(msg)
 	return err
 }
 

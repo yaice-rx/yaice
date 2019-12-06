@@ -16,6 +16,7 @@ type IClusterDiscovery interface {
 	GetData() [][]byte
 	Register(data interface{}) error
 	DelData(key string) error
+	SetKey()
 	Watch()
 	Close()
 }
@@ -37,7 +38,6 @@ var ClusterEtcdMgr = newClusterDiscovery()
 func newClusterDiscovery() IClusterDiscovery {
 	var err error
 	mgr := &ClusterDiscovery{
-		key:    constant.ServerNamespace + "/" + ClusterConfMgr.GroupId + "/" + ClusterConfMgr.TypeId,
 		Prefix: constant.ServerNamespace,
 	}
 	config := clientv3.Config{
@@ -49,6 +49,10 @@ func newClusterDiscovery() IClusterDiscovery {
 		return nil
 	}
 	return mgr
+}
+
+func (this *ClusterDiscovery) SetKey() {
+	this.key = constant.ServerNamespace + "/" + ClusterConfMgr.GroupId + "/" + ClusterConfMgr.TypeId
 }
 
 //注册数据到服务上

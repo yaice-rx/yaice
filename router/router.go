@@ -14,6 +14,8 @@ type IRouter interface {
 	GetHttpHandlerMap() map[string]func(write http.ResponseWriter, request *http.Request)
 	CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte)
 	GetRouterMap() map[int32]func(conn network.IConnect, content []byte)
+	GetHttpHandlerCount() int
+	GetRouterCount() int
 }
 
 type router struct {
@@ -40,8 +42,8 @@ func (this *router) RegisterHttpHandlerFunc(router string, handler func(write ht
 }
 
 func (this *router) GetHttpHandlerMap() map[string]func(write http.ResponseWriter, request *http.Request) {
-	this.RLocker()
-	defer this.RUnlock()
+	this.Lock()
+	defer this.Unlock()
 	return this.httpHandlerMap
 }
 
@@ -56,13 +58,21 @@ func (this *router) RegisterRouterFunc(msgObj proto.Message, handler func(conn n
 
 //调用内部方法
 func (this *router) CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte) {
-	this.RLocker()
-	defer this.RUnlock()
+	this.Lock()
+	defer this.Unlock()
 	return this.routerMap[msgId]
 }
 
 func (this *router) GetRouterMap() map[int32]func(conn network.IConnect, content []byte) {
-	this.RLocker()
-	defer this.RUnlock()
+	this.Lock()
+	defer this.Unlock()
 	return this.routerMap
+}
+
+func (this *router) GetHttpHandlerCount() int {
+	return len(this.httpHandlerMap)
+}
+
+func (this *router) GetRouterCount() int {
+	return len(this.httpHandlerMap)
 }
