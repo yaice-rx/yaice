@@ -90,6 +90,7 @@ func (this *yaice) Serve() error {
 	if err != nil {
 		return errors.New("network start fail,[error :" + err.Error() + " ]")
 	}
+	this.network.Run()
 	cluster.ClusterConfMgr.OutHost = this.serviceResMgr.ExtranetHost
 	cluster.ClusterConfMgr.InHost = this.serviceResMgr.IntranetHost
 	cluster.ClusterConfMgr.OutPort = port

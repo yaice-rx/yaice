@@ -101,15 +101,16 @@ func (this *server) Run() {
 		for {
 			select {
 			//调用服务器内部方法
-			case data := <-this.receiveMsgChan:
-				func_ := router_.RouterMgr.CallRouterFunc(data.ID)
+			case data :=  <-this.receiveMsgChan:
+				func_ := router_.RouterMgr.CallRouterFunc(int32(data.ID))
 				if func_ != nil {
 					func_(data.Conn, data.Data)
 				}
 				break
 			//调用网络流
 			case <-this.sendMsgChan:
-				//go data.Conn.Send(data.Data)
+				break
+			default:
 				break
 			}
 		}

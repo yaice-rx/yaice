@@ -5,6 +5,8 @@ type IServer interface {
 	GetNetwork() string
 	//监听端口
 	Start() (int, error)
+	//启动
+	Run()
 	//关闭
 	Close()
 }

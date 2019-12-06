@@ -60,11 +60,7 @@ func (this *clusterClient) connectServices() {
 			}
 			//发送服务关联协议数据
 			protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
-			data, err := json.Marshal(protoData)
-			if err != nil {
-				continue
-			}
-			err = conn.Send(data)
+			err := conn.Send(&protoData)
 			if err != nil {
 				continue
 			}
@@ -87,13 +83,13 @@ func (this *clusterClient) serviceAssociateFunc(conn network.IConnect, content [
 	//添加服务到列表中
 	this.Lock()
 	defer this.Unlock()
-	var connect map[int64]network.IConnect
+	connect := make(map[int64]network.IConnect)
 	connect[data.Pid] = conn
 	this.ClientList[data.TypeName] = connect
 	//心跳
 	job.Crontab.AddCronTask(10, -1, func() {
-		data, _ := json.Marshal(proto_.C2SServicePing{})
-		if conn.Send(data) != nil {
+		data := proto_.C2SServicePing{}
+		if conn.Send(&data) != nil {
 			return
 		}
 	})

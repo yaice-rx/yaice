@@ -40,9 +40,11 @@ func (this *httpServer) Start() (int, error) {
 	port := resource.ServiceResMgr.HttpPort
 	//开启监听
 	this.server.Addr = ":" + strconv.Itoa(port)
-	//开启http网络
-	go this.server.ListenAndServe()
 	return port, nil
+}
+
+func (this *httpServer)Run(){
+	go this.server.ListenAndServe()
 }
 
 func (this *httpServer) Close() {

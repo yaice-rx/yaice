@@ -38,6 +38,7 @@ func newClusterServer() IClusterServer {
 	if port, err := mgr.service.Start(); err == nil {
 		ClusterConfMgr.InPort = port
 	}
+	mgr.service.Run()
 	return mgr
 }
 
@@ -56,9 +57,10 @@ func (this *clusterServer) serviceAssociateFunc(conn network.IConnect, content [
 	if json.Unmarshal(content, &data) != nil {
 		return
 	}
-	var connect map[int64]network.IConnect
+	connect := make(map[int64]network.IConnect)
 	connect[data.Pid] = conn
 	this.ServiceList[data.TypeName] = connect
+	conn.Send(&proto.S2CServiceAssociate{})
 }
 
 func (this *clusterServer) servicePingFunc(conn network.IConnect, content []byte) {
