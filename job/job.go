@@ -19,14 +19,15 @@ type Cron struct {
 	entries chan *JobItem
 }
 
-var Crontab *Cron
+var Crontab = newCrontab()
 
-func Init() {
-	Crontab = &Cron{
+func newCrontab() *Cron {
+	this := &Cron{
 		running: true,
 		entries: make(chan *JobItem, 100),
 	}
-	go exec()
+	go this.exec()
+	return this
 }
 
 type cronInterface interface {
@@ -46,13 +47,13 @@ func (this *Cron) AddCronTask(_time int64, execNum int, fn_ func()) {
 	this.entries <- job
 }
 
-func exec() {
+func (this *Cron) exec() {
 	timer := time.NewTicker(time.Second)
 	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
-			for v := range Crontab.entries {
+			for v := range this.entries {
 				if nil == v {
 					continue
 				}
@@ -65,7 +66,7 @@ func exec() {
 					}
 				}
 				if v.execNum > 0 || v.execNum == -1 {
-					Crontab.entries <- v
+					this.entries <- v
 				}
 			}
 		}

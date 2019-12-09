@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/cluster"
+	"github.com/yaice-rx/yaice/job"
 	"github.com/yaice-rx/yaice/network"
 	http_ "github.com/yaice-rx/yaice/network/http"
 	"github.com/yaice-rx/yaice/network/tcp"
@@ -30,8 +31,9 @@ type IServer interface {
 var running = make(chan bool, 1)
 
 type yaice struct {
-	routerMgr           router.IRouter            //路由配置
-	network             network.IServer           //适配网络
+	routerMgr           router.IRouter  //路由配置
+	network             network.IServer //适配网络
+	job                 *job.Cron
 	serviceResMgr       *resource.ServiceResource //资源配置
 	clusterDiscoveryMgr cluster.IClusterDiscovery //服务发现
 	clusterClientMgr    cluster.IClusterClient    //集群-客户端
@@ -39,11 +41,13 @@ type yaice struct {
 }
 
 func NewServer(typeId string, groundId string, allowConn bool) IServer {
+
 	cluster.ClusterConfMgr.Pid = os.Getpid()
 	cluster.ClusterConfMgr.TypeId = typeId
 	cluster.ClusterConfMgr.GroupId = groundId
 	cluster.ClusterConfMgr.AllowConnect = allowConn
 	server := &yaice{
+		job:                 job.Crontab,
 		routerMgr:           router.RouterMgr,         //路由配置
 		serviceResMgr:       resource.ServiceResMgr,   //系统资源配置
 		clusterDiscoveryMgr: cluster.ClusterEtcdMgr,   //服务发现

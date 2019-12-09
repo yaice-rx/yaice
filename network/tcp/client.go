@@ -53,6 +53,7 @@ func (this *TCPClient) receivePackets(conn network.IConn) {
 			logrus.Debug(conn.GetConn().(*net.TCPConn).RemoteAddr().String(), " connection error: ", err)
 			return
 		}
+		logrus.Println("receive data client")
 		//写入接收消息队列中
 		tmpBuffer = network.UnPacket(conn, append(tmpBuffer, buffer[:n]...), this.receiveMsgChan)
 	}
