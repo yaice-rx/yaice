@@ -51,7 +51,8 @@ func (this *clusterServer) serviceAssociateFunc(conn network.IConn, content []by
 	this.Lock()
 	defer this.Unlock()
 	var data proto.C2SServiceAssociate
-	if json.Unmarshal(content, &data) != nil {
+	if err := json.Unmarshal(content, &data); err != nil {
+		fmt.Println(""+err.Error(), "====", string(content))
 		return
 	}
 	this.network.GetConns().Add(conn)

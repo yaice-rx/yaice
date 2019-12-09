@@ -38,6 +38,7 @@ func (this *TCPClient) Connect(IP string, port int) network.IConn {
 	dealConn := newConnect(conn)
 	//接收数据
 	go this.receivePackets(dealConn)
+	go this.run()
 	return dealConn
 }
 
@@ -57,7 +58,7 @@ func (this *TCPClient) receivePackets(conn network.IConn) {
 	}
 }
 
-func (this *TCPClient) Run() {
+func (this *TCPClient) run() {
 	go func() {
 		for {
 			select {

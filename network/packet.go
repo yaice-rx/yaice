@@ -51,9 +51,9 @@ func UnPacket(conn IConn, buffer []byte, readerChannel chan *Msg) []byte {
 		if length < i+ConstDataLength+ConstProtocolLength+messageLength {
 			break
 		}
-		data := buffer[i+ConstProtocolLength : i+ConstProtocolLength+messageLength]
+		data := buffer[i+ConstProtocolLength+ConstDataLength : i+ConstProtocolLength+ConstDataLength+messageLength]
 		readerChannel <- NewMsg(msgId, conn, data)
-		i += ConstProtocolLength + messageLength - 1
+		i += ConstProtocolLength + ConstDataLength + messageLength - 1
 	}
 
 	if i == length {
