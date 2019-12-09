@@ -8,6 +8,7 @@ import (
 	"github.com/yaice-rx/yaice/proto"
 	"github.com/yaice-rx/yaice/router"
 	"sync"
+	"time"
 )
 
 // 集群服务
@@ -60,5 +61,5 @@ func (this *clusterServer) serviceAssociateFunc(conn network.IConn, content []by
 }
 
 func (this *clusterServer) servicePingFunc(conn network.IConn, content []byte) {
-	fmt.Println("ping =================== ")
+	fmt.Println("ping =================== ", time.Now().String())
 }
