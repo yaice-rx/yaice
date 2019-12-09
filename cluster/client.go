@@ -17,30 +17,23 @@ type IClusterClient interface {
 //集群-客户端
 type clusterClient struct {
 	sync.Mutex
-	//客户端
-	client network.IClient
-	//连接服务的数组	 map[服务类型]map[进程id]连接句柄
-	ClientList map[string]map[int64]network.IConnect
+	network network.IClient
 }
 
+//集群客户端
 var ClusterClientMgr = newClusterClient()
 
-/**
- * 初始化客户端
- */
+// 初始化客户端
 func newClusterClient() IClusterClient {
 	this := &clusterClient{
-		client:     tcp.ClientMgr,
-		ClientList: make(map[string]map[int64]network.IConnect),
+		network: tcp.TCPClientMgr,
 	}
 	this.registerRouter()
 	this.connectServices()
 	return this
 }
 
-/**
- * 连接服务
- */
+// 连接服务
 func (this *clusterClient) connectServices() {
 	for _, data := range ClusterEtcdMgr.GetData() {
 		//集群配置文件
@@ -54,7 +47,7 @@ func (this *clusterClient) connectServices() {
 		}
 		if config.AllowConnect {
 			//连接服务句柄
-			conn := this.client.Connect(config.InHost, config.InPort)
+			conn := this.network.Connect(config.InHost, config.InPort)
 			if conn == nil {
 				continue
 			}
@@ -68,24 +61,18 @@ func (this *clusterClient) connectServices() {
 	}
 }
 
-/**
- * 注册路由方法
- */
+// 注册路由方法
 func (this *clusterClient) registerRouter() {
 	router.RouterMgr.RegisterRouterFunc(&proto_.S2CServiceAssociate{}, this.serviceAssociateFunc)
 }
 
-func (this *clusterClient) serviceAssociateFunc(conn network.IConnect, content []byte) {
+func (this *clusterClient) serviceAssociateFunc(conn network.IConn, content []byte) {
 	var data proto_.C2SServiceAssociate
 	if json.Unmarshal(content, &data) != nil {
 		return
 	}
 	//添加服务到列表中
-	this.Lock()
-	defer this.Unlock()
-	connect := make(map[int64]network.IConnect)
-	connect[data.Pid] = conn
-	this.ClientList[data.TypeName] = connect
+	this.network.GetConns().Add(conn)
 	//心跳
 	job.Crontab.AddCronTask(10, -1, func() {
 		data := proto_.C2SServicePing{}

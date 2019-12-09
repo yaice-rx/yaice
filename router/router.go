@@ -10,10 +10,10 @@ import (
 
 type IRouter interface {
 	RegisterHttpHandlerFunc(router string, handler func(write http.ResponseWriter, request *http.Request))
-	RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConnect, content []byte))
+	RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConn, content []byte))
 	GetHttpHandlerMap() map[string]func(write http.ResponseWriter, request *http.Request)
-	CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte)
-	GetRouterMap() map[int32]func(conn network.IConnect, content []byte)
+	CallRouterFunc(msgId int32) func(conn network.IConn, content []byte)
+	GetRouterMap() map[int32]func(conn network.IConn, content []byte)
 	GetHttpHandlerCount() int
 	GetRouterCount() int
 }
@@ -21,7 +21,7 @@ type IRouter interface {
 type router struct {
 	sync.RWMutex
 	//kcp tcp udp raknet 路由在此处理
-	routerMap map[int32]func(conn network.IConnect, content []byte)
+	routerMap map[int32]func(conn network.IConn, content []byte)
 	//http路由
 	httpHandlerMap map[string]func(write http.ResponseWriter, request *http.Request)
 }
@@ -30,7 +30,7 @@ var RouterMgr = newRouter()
 
 func newRouter() IRouter {
 	return &router{
-		routerMap:      make(map[int32]func(conn network.IConnect, content []byte)),
+		routerMap:      make(map[int32]func(conn network.IConn, content []byte)),
 		httpHandlerMap: make(map[string]func(write http.ResponseWriter, request *http.Request)),
 	}
 }
@@ -48,22 +48,22 @@ func (this *router) GetHttpHandlerMap() map[string]func(write http.ResponseWrite
 }
 
 //注册外部路由方法
-func (this *router) RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConnect, content []byte)) {
+func (this *router) RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConn, content []byte)) {
 	this.Lock()
 	defer this.Unlock()
 	msgName := utils.GetProtoName(msgObj)
-	protocolNum := utils.ProtocalNumber(msgName)
+	protocolNum := int32(utils.ProtocalNumber(msgName))
 	this.routerMap[protocolNum] = handler
 }
 
 //调用内部方法
-func (this *router) CallRouterFunc(msgId int32) func(conn network.IConnect, content []byte) {
+func (this *router) CallRouterFunc(msgId int32) func(conn network.IConn, content []byte) {
 	this.Lock()
 	defer this.Unlock()
 	return this.routerMap[msgId]
 }
 
-func (this *router) GetRouterMap() map[int32]func(conn network.IConnect, content []byte) {
+func (this *router) GetRouterMap() map[int32]func(conn network.IConn, content []byte) {
 	this.Lock()
 	defer this.Unlock()
 	return this.routerMap

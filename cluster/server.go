@@ -17,9 +17,7 @@ type IClusterServer interface {
 
 type clusterServer struct {
 	sync.RWMutex
-	service network.IServer
-	//服务连接集群列表	map[服务类型]map[进程id]连接句柄
-	ServiceList map[string]map[int64]network.IConnect
+	network network.IServer
 }
 
 var ClusterServerMgr = newClusterServer()
@@ -29,16 +27,15 @@ var ClusterServerMgr = newClusterServer()
  */
 func newClusterServer() IClusterServer {
 	mgr := &clusterServer{
-		service:     tcp.TcpServerMgr,
-		ServiceList: make(map[string]map[int64]network.IConnect),
+		network: tcp.TcpServerMgr,
 	}
 	//注册服务
 	mgr.registerRouter()
 	//启动监听service端口
-	if port, err := mgr.service.Start(); err == nil {
+	if port, err := mgr.network.Start(); err == nil {
 		ClusterConfMgr.InPort = port
 	}
-	mgr.service.Run()
+	mgr.network.Run()
 	return mgr
 }
 
@@ -50,19 +47,17 @@ func (this *clusterServer) registerRouter() {
 	router.RouterMgr.RegisterRouterFunc(&proto.C2SServicePing{}, this.servicePingFunc)
 }
 
-func (this *clusterServer) serviceAssociateFunc(conn network.IConnect, content []byte) {
+func (this *clusterServer) serviceAssociateFunc(conn network.IConn, content []byte) {
 	this.Lock()
 	defer this.Unlock()
 	var data proto.C2SServiceAssociate
 	if json.Unmarshal(content, &data) != nil {
 		return
 	}
-	connect := make(map[int64]network.IConnect)
-	connect[data.Pid] = conn
-	this.ServiceList[data.TypeName] = connect
+	this.network.GetConns().Add(conn)
 	conn.Send(&proto.S2CServiceAssociate{})
 }
 
-func (this *clusterServer) servicePingFunc(conn network.IConnect, content []byte) {
+func (this *clusterServer) servicePingFunc(conn network.IConn, content []byte) {
 	fmt.Println("ping =================== ")
 }

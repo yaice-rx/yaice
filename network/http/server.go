@@ -9,7 +9,7 @@ import (
 	"sync"
 )
 
-type httpServer struct {
+type HTTPServer struct {
 	sync.Mutex
 	server  *http.Server
 	network string
@@ -18,18 +18,18 @@ type httpServer struct {
 var HttpServerMgr = newHttpServer()
 
 func newHttpServer() network.IServer {
-	srv := &httpServer{
+	srv := &HTTPServer{
 		network: "http",
 	}
 	srv.server = &http.Server{}
 	return srv
 }
 
-func (this *httpServer) GetNetwork() string {
+func (this *HTTPServer) GetNetworkName() string {
 	return this.network
 }
 
-func (this *httpServer) Start() (int, error) {
+func (this *HTTPServer) Start() (int, error) {
 	mux := http.NewServeMux()
 	if router_.RouterMgr.GetHttpHandlerCount() > 0 {
 		for r_key, handler := range router_.RouterMgr.GetHttpHandlerMap() {
@@ -43,10 +43,14 @@ func (this *httpServer) Start() (int, error) {
 	return port, nil
 }
 
-func (this *httpServer)Run(){
+func (this *HTTPServer) GetConns() network.IConnManager {
+	return nil
+}
+
+func (this *HTTPServer) Run() {
 	go this.server.ListenAndServe()
 }
 
-func (this *httpServer) Close() {
+func (this *HTTPServer) Close() {
 	this.server.Close()
 }

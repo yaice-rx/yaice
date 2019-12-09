@@ -2,22 +2,21 @@ package tcp
 
 import (
 	"errors"
+	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/resource"
 	router_ "github.com/yaice-rx/yaice/router"
-	"github.com/yaice-rx/yaice/utils"
-	"io"
 	"net"
 	"strconv"
 	"sync"
 )
 
-type server struct {
+type TCPServer struct {
 	sync.Mutex
 	network  string
 	listener *net.TCPListener
 	//连接列表
-	ConnectsMgr network.IConnectList
+	connManager network.IConnManager
 	//发送消息chan
 	sendMsgChan chan *network.Msg
 	//接收消息chan
@@ -26,13 +25,11 @@ type server struct {
 
 var TcpServerMgr = newTcpServer()
 
-/**
- * 创建服务句柄
- */
+// 创建服务句柄
 func newTcpServer() network.IServer {
-	serve := &server{
+	serve := &TCPServer{
 		network:        "tcp",
-		ConnectsMgr:    NewConnManager(),
+		connManager:    NewConnManager(),
 		sendMsgChan:    make(chan *network.Msg),
 		receiveMsgChan: make(chan *network.Msg),
 	}
@@ -40,12 +37,12 @@ func newTcpServer() network.IServer {
 }
 
 //获取网络连接名称
-func (this *server) GetNetwork() string {
+func (this *TCPServer) GetNetworkName() string {
 	return this.network
 }
 
 // 开启网络服务
-func (this *server) Start() (int, error) {
+func (this *TCPServer) Start() (int, error) {
 	for i := resource.ServiceResMgr.PortStart; i < resource.ServiceResMgr.PortEnd; i++ {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
 		if nil != err {
@@ -63,29 +60,26 @@ func (this *server) Start() (int, error) {
 					continue
 				}
 				//添加用户句柄
-				dealConn := NewConnect(conn)
-				this.ConnectsMgr.Add(dealConn)
+				dealConn := newConnect(conn)
+				this.connManager.Add(dealConn)
 				//如果当前连接数大于最大的连接数，则退出
-				if this.ConnectsMgr.Len() > resource.ServiceResMgr.MaxConnectNumber {
+				if this.connManager.Len() > resource.ServiceResMgr.MaxConnectNumber {
 					this.listener.Close()
 					continue
 				}
 				//处理用户数据
 				go func(conn *net.TCPConn) {
+					tmpBuffer := make([]byte, 0)
+					var buffer = make([]byte, 1024)
 					for {
 						//read
-						var buffer = make([]byte, 1024)
 						n, e := conn.Read(buffer)
 						if e != nil {
-							if e == io.EOF {
-								break
-							}
-							break
+							logrus.Debug(conn.RemoteAddr().String(), " connection error: ", err)
+							return
 						}
-						//协议号
-						msgId := utils.BytesToInt(buffer[:4])
 						//写入接收消息队列中
-						this.receiveMsgChan <- network.NewMsg(msgId, dealConn, buffer[4:n])
+						tmpBuffer = network.UnPacket(dealConn, append(tmpBuffer, buffer[:n]...), this.receiveMsgChan)
 					}
 				}(conn)
 			}
@@ -96,12 +90,12 @@ func (this *server) Start() (int, error) {
 }
 
 //读取网络数据
-func (this *server) Run() {
+func (this *TCPServer) Run() {
 	go func() {
 		for {
 			select {
 			//调用服务器内部方法
-			case data :=  <-this.receiveMsgChan:
+			case data := <-this.receiveMsgChan:
 				func_ := router_.RouterMgr.CallRouterFunc(int32(data.ID))
 				if func_ != nil {
 					func_(data.Conn, data.Data)
@@ -117,8 +111,12 @@ func (this *server) Run() {
 	}()
 }
 
+func (this *TCPServer) GetConns() network.IConnManager {
+	return this.connManager
+}
+
 // 关闭网络接口
-func (this *server) Close() {
+func (this *TCPServer) Close() {
 	this.Lock()
 	defer this.Unlock()
 	this.listener.Close()

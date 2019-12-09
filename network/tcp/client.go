@@ -1,31 +1,30 @@
 package tcp
 
 import (
-	"bufio"
-	"fmt"
+	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/network"
+	router_ "github.com/yaice-rx/yaice/router"
 	"net"
 	"sync"
 )
 
-type client struct {
+type TCPClient struct {
 	sync.Mutex
-	conn *net.TCPConn
+	connManager    network.IConnManager
+	receiveMsgChan chan *network.Msg
 }
 
-var ClientMgr = newClient()
+var TCPClientMgr = newTCPClientMgr()
 
-/**
- * 初始化客户端
- */
-func newClient() network.IClient {
-	return &client{}
+func newTCPClientMgr() network.IClient {
+	return &TCPClient{
+		connManager:    NewConnManager(),
+		receiveMsgChan: make(chan *network.Msg),
+	}
 }
 
-/**
- * 连接服务器
- */
-func (this *client) Connect(IP string, port int) network.IConnect {
+// 连接服务器
+func (this *TCPClient) Connect(IP string, port int) network.IConn {
 	this.Lock()
 	defer this.Unlock()
 	addr := &net.TCPAddr{
@@ -36,28 +35,51 @@ func (this *client) Connect(IP string, port int) network.IConnect {
 	if err != nil {
 		return nil
 	}
-	go this.receivePackets()
-	return NewConnect(conn)
+	dealConn := newConnect(conn)
+	//接收数据
+	go this.receivePackets(dealConn)
+	return dealConn
 }
 
 // 接收数据包
-func (this *client) receivePackets() {
-	reader := bufio.NewReader(this.conn)
+func (this *TCPClient) receivePackets(conn network.IConn) {
+	tmpBuffer := make([]byte, 0)
+	var buffer = make([]byte, 1024)
 	for {
-		//承接上面说的服务器端的偷懒，我这里读也只是以\n为界限来读区分包
-		msg, err := reader.ReadString('\n')
+		//read
+		n, err := conn.GetConn().(*net.TCPConn).Read(buffer)
 		if err != nil {
-			//在这里也请处理如果服务器关闭时的异常
-			//close(client.stopChan)
-			break
+			logrus.Debug(conn.GetConn().(*net.TCPConn).RemoteAddr().String(), " connection error: ", err)
+			return
 		}
-		fmt.Println(msg)
+		//写入接收消息队列中
+		tmpBuffer = network.UnPacket(conn, append(tmpBuffer, buffer[:n]...), this.receiveMsgChan)
 	}
 }
 
-/**
- * 停止
- */
-func (this *client) Stop() {
-	this.conn.Close()
+func (this *TCPClient) Run() {
+	go func() {
+		for {
+			select {
+			//调用服务器内部方法
+			case data := <-this.receiveMsgChan:
+				func_ := router_.RouterMgr.CallRouterFunc(int32(data.ID))
+				if func_ != nil {
+					func_(data.Conn, data.Data)
+				}
+				break
+			default:
+				break
+			}
+		}
+	}()
+}
+
+func (this *TCPClient) GetConns() network.IConnManager {
+	return this.connManager
+}
+
+//停止
+func (this *TCPClient) Stop() {
+	this.connManager.ClearConn()
 }

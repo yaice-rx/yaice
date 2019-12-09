@@ -17,7 +17,7 @@ type IServer interface {
 	//适配网络
 	AdaptationNetwork(network string)
 	//添加路由
-	AddRouter(message proto.Message, handler func(conn network.IConnect, content []byte))
+	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
 	//添加HTTP路由
 	AddHttpHandler(router string, handler func(write http.ResponseWriter, request *http.Request))
 	//开启业务服务方法
@@ -72,7 +72,7 @@ func (this *yaice) AdaptationNetwork(network string) {
 	}
 }
 
-func (this *yaice) AddRouter(message proto.Message, handler func(conn network.IConnect, content []byte)) {
+func (this *yaice) AddRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {
 	this.routerMgr.RegisterRouterFunc(message, handler)
 }
 
@@ -94,7 +94,7 @@ func (this *yaice) Serve() error {
 	cluster.ClusterConfMgr.OutHost = this.serviceResMgr.ExtranetHost
 	cluster.ClusterConfMgr.InHost = this.serviceResMgr.IntranetHost
 	cluster.ClusterConfMgr.OutPort = port
-	cluster.ClusterConfMgr.Network = this.network.GetNetwork()
+	cluster.ClusterConfMgr.Network = this.network.GetNetworkName()
 	//注册配置中心数据
 	this.clusterDiscoveryMgr.Register(cluster.ClusterConfMgr)
 	//退出运行
