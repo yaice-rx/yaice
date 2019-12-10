@@ -75,19 +75,21 @@ func (this *yaice) AddRouter(message proto.Message, handler func(conn network.IC
 
 //启动服务
 func (this *yaice) Serve() error {
-	portChan := make(chan int)
 	//开启网络
-	this.network.Start(portChan)
-	port := <-portChan
-	if port <= 0 {
-		return errors.New("port listen fail")
+	if this.network != nil {
+		portChan := make(chan int)
+		this.network.Start(portChan)
+		port := <-portChan
+		if port <= 0 {
+			return errors.New("port listen fail")
+		}
+		close(portChan)
+		cluster.ClusterConfMgr.OutHost = this.serviceResMgr.ExtranetHost
+		cluster.ClusterConfMgr.Network = this.network.GetNetworkName()
+		cluster.ClusterConfMgr.OutPort = port
+		//注册配置中心数据
+		this.clusterDiscoveryMgr.Register(cluster.ClusterConfMgr)
 	}
-	close(portChan)
-	cluster.ClusterConfMgr.OutHost = this.serviceResMgr.ExtranetHost
-	cluster.ClusterConfMgr.Network = this.network.GetNetworkName()
-	cluster.ClusterConfMgr.OutPort = port
-	//注册配置中心数据
-	this.clusterDiscoveryMgr.Register(cluster.ClusterConfMgr)
 	//退出运行
 	<-running
 	return nil
@@ -95,5 +97,4 @@ func (this *yaice) Serve() error {
 
 //停止服务器方法
 func (this *yaice) Stop() {
-
 }
