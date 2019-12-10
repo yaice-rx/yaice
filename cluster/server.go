@@ -35,7 +35,7 @@ func newClusterServer() IClusterServer {
 	mgr.registerRouter()
 	//启动监听service端口
 	portChan := make(chan int)
-	mgr.network.Start(portChan)
+	go mgr.network.Start(portChan)
 	port := <-portChan
 	if port <= 0 {
 		return nil

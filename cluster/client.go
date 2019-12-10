@@ -52,7 +52,7 @@ func (this *clusterClient) connectServices() {
 			if conn == nil {
 				continue
 			}
-
+			conn.Start()
 			//发送服务关联协议数据
 			protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
 			err := conn.SendMsg(&protoData)

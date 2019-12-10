@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/satori/go.uuid"
@@ -74,12 +73,12 @@ func (this *Connect) StartWriteThread() {
 func (this *Connect) SendMsg(message proto.Message) error {
 	data, err := json.Marshal(message)
 	if err != nil {
-		return nil
+		return err
 	}
 	protoNumber := utils.ProtocalNumber(utils.GetProtoName(message))
 	dataPack := NewPacket()
 	this.sendQueue <- dataPack.Pack(NewMessage(protoNumber, data, this))
-	return errors.New("data assembly error")
+	return nil
 }
 
 func (this *Connect) GetConn() interface{} {

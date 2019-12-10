@@ -66,12 +66,10 @@ func (this *router) SendMsgToReadQueue(data network.IMessage) {
 }
 
 func (this *router) StartWorker(readQueue chan network.IMessage) {
-	go func() {
-		for {
-			select {
-			case data := <-readQueue:
-				this.DoRouterHandler(data)
-			}
+	for {
+		select {
+		case data := <-readQueue:
+			this.DoRouterHandler(data)
 		}
-	}()
+	}
 }

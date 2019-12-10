@@ -35,42 +35,38 @@ func (this *TCPServer) GetNetworkName() string {
 
 // 开启网络服务
 func (this *TCPServer) Start(port chan int) {
-	go func() {
-		for i := resource.ServiceResMgr.PortStart; i < resource.ServiceResMgr.PortEnd; i++ {
-			tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
-			if nil != err {
-				continue
-			}
-			listener, err := net.ListenTCP("tcp", tcpAddr)
-			if nil != err {
-				continue
-			}
-			this.listener = listener
-			go func() {
-				for {
-					tcpConn, err := this.listener.AcceptTCP()
-					if nil != err || nil == tcpConn {
-						continue
-					}
-					//添加用户句柄
-					conn := newConnect(tcpConn)
-					this.connManager.Add(conn)
-					//如果当前连接数大于最大的连接数，则退出
-					if this.connManager.Len() > resource.ServiceResMgr.MaxConnectNumber {
-						this.listener.Close()
-						continue
-					}
-					//处理用户数据
-					go conn.Start()
-				}
-			}()
-			port <- i
-			logrus.Debug("tcp listen port :", i)
-			return
+	for i := resource.ServiceResMgr.PortStart; i < resource.ServiceResMgr.PortEnd; i++ {
+		tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
+		if nil != err {
+			continue
 		}
-		port <- -1
-		logrus.Debug("tcp port not found")
-	}()
+		listener, err := net.ListenTCP("tcp", tcpAddr)
+		if nil != err {
+			continue
+		}
+		logrus.Debug("tcp listen port :", i)
+		port <- i
+		this.listener = listener
+		for {
+			tcpConn, err := listener.AcceptTCP()
+			if nil != err || nil == tcpConn {
+				continue
+			}
+			//添加用户句柄
+			conn := newConnect(tcpConn)
+			this.connManager.Add(conn)
+			//如果当前连接数大于最大的连接数，则退出
+			if this.connManager.Len() > resource.ServiceResMgr.MaxConnectNumber {
+				this.listener.Close()
+				continue
+			}
+			//处理用户数据
+			go conn.Start()
+		}
+		return
+	}
+	port <- -1
+	logrus.Debug("tcp port not found")
 }
 
 func (this *TCPServer) GetConns() network.IConnManager {

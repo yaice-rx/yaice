@@ -78,7 +78,7 @@ func (this *yaice) Serve() error {
 	//开启网络
 	if this.network != nil {
 		portChan := make(chan int)
-		this.network.Start(portChan)
+		go this.network.Start(portChan)
 		port := <-portChan
 		if port <= 0 {
 			return errors.New("port listen fail")
@@ -87,9 +87,9 @@ func (this *yaice) Serve() error {
 		cluster.ClusterConfMgr.OutHost = this.serviceResMgr.ExtranetHost
 		cluster.ClusterConfMgr.Network = this.network.GetNetworkName()
 		cluster.ClusterConfMgr.OutPort = port
-		//注册配置中心数据
-		this.clusterDiscoveryMgr.Register(cluster.ClusterConfMgr)
 	}
+	//注册配置中心数据
+	this.clusterDiscoveryMgr.Register(cluster.ClusterConfMgr)
 	//退出运行
 	<-running
 	return nil
