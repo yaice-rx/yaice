@@ -6,11 +6,9 @@ import (
 	"github.com/yaice-rx/yaice/cluster"
 	"github.com/yaice-rx/yaice/job"
 	"github.com/yaice-rx/yaice/network"
-	http_ "github.com/yaice-rx/yaice/network/http"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/resource"
 	"github.com/yaice-rx/yaice/router"
-	"net/http"
 	"os"
 )
 
@@ -19,8 +17,6 @@ type IServer interface {
 	AdaptationNetwork(network string)
 	//添加路由
 	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
-	//添加HTTP路由
-	AddHttpHandler(router string, handler func(write http.ResponseWriter, request *http.Request))
 	//开启业务服务方法
 	Serve() error
 	//停止服务器方法
@@ -41,11 +37,6 @@ type yaice struct {
 }
 
 func NewServer(typeId string, groundId string, allowConn bool) IServer {
-
-	cluster.ClusterConfMgr.Pid = os.Getpid()
-	cluster.ClusterConfMgr.TypeId = typeId
-	cluster.ClusterConfMgr.GroupId = groundId
-	cluster.ClusterConfMgr.AllowConnect = allowConn
 	server := &yaice{
 		job:                 job.Crontab,
 		routerMgr:           router.RouterMgr,         //路由配置
@@ -54,7 +45,12 @@ func NewServer(typeId string, groundId string, allowConn bool) IServer {
 		clusterClientMgr:    cluster.ClusterClientMgr, //客户端集群
 		clusterServerMgr:    cluster.ClusterServerMgr, //服务器内部
 	}
-	server.clusterDiscoveryMgr.SetKey()
+	//更新服务配置文件
+	cluster.ClusterConfMgr.Pid = os.Getpid()
+	cluster.ClusterConfMgr.TypeId = typeId
+	cluster.ClusterConfMgr.GroupId = groundId
+	cluster.ClusterConfMgr.AllowConnect = allowConn
+	server.clusterDiscoveryMgr.SetPrefix()
 	return server
 }
 
@@ -68,37 +64,28 @@ func (this *yaice) AdaptationNetwork(network string) {
 		break
 	case "raknet":
 		break
-	case "http":
-		this.network = http_.HttpServerMgr
-		break
 	default:
 		break
 	}
 }
 
 func (this *yaice) AddRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {
-	this.routerMgr.RegisterRouterFunc(message, handler)
-}
-
-func (this *yaice) AddHttpHandler(router string, handler func(write http.ResponseWriter, request *http.Request)) {
-	this.routerMgr.RegisterHttpHandlerFunc(router, handler)
+	this.routerMgr.AddRouter(message, handler)
 }
 
 //启动服务
 func (this *yaice) Serve() error {
-	if this.network == nil {
-		return errors.New("Please select a network")
-	}
+	portChan := make(chan int)
 	//开启网络
-	port, err := this.network.Start()
-	if err != nil {
-		return errors.New("network start fail,[error :" + err.Error() + " ]")
+	this.network.Start(portChan)
+	port := <-portChan
+	if port <= 0 {
+		return errors.New("port listen fail")
 	}
-	this.network.Run()
+	close(portChan)
 	cluster.ClusterConfMgr.OutHost = this.serviceResMgr.ExtranetHost
-	cluster.ClusterConfMgr.InHost = this.serviceResMgr.IntranetHost
-	cluster.ClusterConfMgr.OutPort = port
 	cluster.ClusterConfMgr.Network = this.network.GetNetworkName()
+	cluster.ClusterConfMgr.OutPort = port
 	//注册配置中心数据
 	this.clusterDiscoveryMgr.Register(cluster.ClusterConfMgr)
 	//退出运行

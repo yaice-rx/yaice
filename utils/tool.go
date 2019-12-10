@@ -18,29 +18,29 @@ import (
 var mutex sync.Mutex
 
 //整形转换成字节
-func IntToBytes(n int) []byte {
-	x := int32(n)
+func IntToBytes(n uint32) []byte {
+	x := n
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.BigEndian, x)
 	return bytesBuffer.Bytes()
 }
 
 //字节转换成整形
-func BytesToInt(b []byte) int {
+func BytesToInt(b []byte) uint32 {
 	bytesBuffer := bytes.NewBuffer(b)
-	var x int32
+	var x uint32
 	binary.Read(bytesBuffer, binary.BigEndian, &x)
-	return int(x)
+	return x
 }
 
 //把协议名称转为唯一协议编号
-func ProtocalNumber(replacement string) int {
-	var h int32
+func ProtocalNumber(replacement string) uint32 {
+	var h uint32
 	h = 0
 	for _, char := range []rune(replacement) {
-		h = 31*h + int32(char)
+		h = 31*h + uint32(char)
 	}
-	return int(h)
+	return h
 }
 
 //获取协议名称

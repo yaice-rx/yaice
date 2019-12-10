@@ -4,75 +4,74 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/utils"
-	"net/http"
 	"sync"
 )
 
 type IRouter interface {
-	RegisterHttpHandlerFunc(router string, handler func(write http.ResponseWriter, request *http.Request))
-	RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConn, content []byte))
-	GetHttpHandlerMap() map[string]func(write http.ResponseWriter, request *http.Request)
-	CallRouterFunc(msgId int32) func(conn network.IConn, content []byte)
-	GetRouterMap() map[int32]func(conn network.IConn, content []byte)
-	GetHttpHandlerCount() int
-	GetRouterCount() int
+	AddRouter(msgObj proto.Message, handler func(conn network.IConn, content []byte))
+	DoRouterHandler(data network.IMessage)
+	GetRoutersLen() int
+	SendMsgToReadQueue(data network.IMessage)
+	Run()
 }
 
 type router struct {
 	sync.RWMutex
-	//kcp tcp udp raknet 路由在此处理
-	routerMap map[int32]func(conn network.IConn, content []byte)
-	//http路由
-	httpHandlerMap map[string]func(write http.ResponseWriter, request *http.Request)
+	//路由列表
+	Routers map[uint32]func(conn network.IConn, content []byte)
+	//网络读取队列
+	ReadQueue chan network.IMessage
 }
 
 var RouterMgr = newRouter()
 
 func newRouter() IRouter {
-	return &router{
-		routerMap:      make(map[int32]func(conn network.IConn, content []byte)),
-		httpHandlerMap: make(map[string]func(write http.ResponseWriter, request *http.Request)),
+	router := &router{
+		Routers:   make(map[uint32]func(conn network.IConn, content []byte)),
+		ReadQueue: make(chan network.IMessage),
 	}
+	router.Run()
+	return router
 }
 
-func (this *router) RegisterHttpHandlerFunc(router string, handler func(write http.ResponseWriter, request *http.Request)) {
-	this.Lock()
-	defer this.Unlock()
-	this.httpHandlerMap[router] = handler
-}
-
-func (this *router) GetHttpHandlerMap() map[string]func(write http.ResponseWriter, request *http.Request) {
-	this.Lock()
-	defer this.Unlock()
-	return this.httpHandlerMap
-}
-
-//注册外部路由方法
-func (this *router) RegisterRouterFunc(msgObj proto.Message, handler func(conn network.IConn, content []byte)) {
+//添加逻辑处理方法
+func (this *router) AddRouter(msgObj proto.Message, handler func(conn network.IConn, content []byte)) {
 	this.Lock()
 	defer this.Unlock()
 	msgName := utils.GetProtoName(msgObj)
-	protocolNum := int32(utils.ProtocalNumber(msgName))
-	this.routerMap[protocolNum] = handler
+	protocolNum := utils.ProtocalNumber(msgName)
+	this.Routers[protocolNum] = handler
 }
 
-//调用内部方法
-func (this *router) CallRouterFunc(msgId int32) func(conn network.IConn, content []byte) {
-	this.Lock()
-	defer this.Unlock()
-	return this.routerMap[msgId]
+//调用逻辑
+func (this *router) DoRouterHandler(data network.IMessage) {
+	this.RLock()
+	defer this.RUnlock()
+	if this.Routers[data.GetMsgId()] != nil {
+		this.Routers[data.GetMsgId()](data.GetConn(), data.GetData())
+	}
 }
 
-func (this *router) GetRouterMap() map[int32]func(conn network.IConn, content []byte) {
-	this.Lock()
-	defer this.Unlock()
-	return this.routerMap
+//获取数量
+func (this *router) GetRoutersLen() int {
+	return len(this.Routers)
 }
 
-func (this *router) GetHttpHandlerCount() int {
-	return len(this.httpHandlerMap)
+func (this *router) Run() {
+	go this.StartWorker(this.ReadQueue)
 }
 
-func (this *router) GetRouterCount() int {
-	return len(this.httpHandlerMap)
+func (this *router) SendMsgToReadQueue(data network.IMessage) {
+	this.ReadQueue <- data
+}
+
+func (this *router) StartWorker(readQueue chan network.IMessage) {
+	go func() {
+		for {
+			select {
+			case data := <-readQueue:
+				this.DoRouterHandler(data)
+			}
+		}
+	}()
 }

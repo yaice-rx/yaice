@@ -16,7 +16,7 @@ type IClusterDiscovery interface {
 	GetData() [][]byte
 	Register(data interface{}) error
 	DelData(key string) error
-	SetKey()
+	SetPrefix()
 	Watch()
 	Close()
 }
@@ -51,7 +51,7 @@ func newClusterDiscovery() IClusterDiscovery {
 	return mgr
 }
 
-func (this *ClusterDiscovery) SetKey() {
+func (this *ClusterDiscovery) SetPrefix() {
 	this.key = constant.ServerNamespace + "/" + ClusterConfMgr.GroupId + "/" + ClusterConfMgr.TypeId
 }
 
@@ -110,10 +110,11 @@ func (this *ClusterDiscovery) Watch() {
 		rch := watcher.Watch(context.TODO(), this.Prefix, clientv3.WithPrefix())
 		for response := range rch {
 			for _, event := range response.Events {
+				data := &clusterConf{}
+				json.Unmarshal(event.Kv.Value, data)
 				switch event.Type {
-				//todo
 				case mvccpb.PUT:
-					//判断新服务，是否是自己所需要的
+					ClusterClientMgr.ConnectService(data)
 					break
 				case mvccpb.DELETE:
 					//删除该key后，重新连接同组服务下的新连接

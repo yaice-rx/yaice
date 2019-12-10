@@ -6,6 +6,7 @@ import (
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/proto"
+	"github.com/yaice-rx/yaice/resource"
 	"github.com/yaice-rx/yaice/router"
 	"sync"
 	"time"
@@ -33,10 +34,15 @@ func newClusterServer() IClusterServer {
 	//注册服务
 	mgr.registerRouter()
 	//启动监听service端口
-	if port, err := mgr.network.Start(); err == nil {
-		ClusterConfMgr.InPort = port
+	portChan := make(chan int)
+	mgr.network.Start(portChan)
+	port := <-portChan
+	if port <= 0 {
+		return nil
 	}
-	mgr.network.Run()
+	ClusterConfMgr.InHost = resource.ServiceResMgr.IntranetHost
+	ClusterConfMgr.InPort = port
+	close(portChan)
 	return mgr
 }
 
@@ -44,8 +50,8 @@ func newClusterServer() IClusterServer {
  * 注册路由方法
  */
 func (this *clusterServer) registerRouter() {
-	router.RouterMgr.RegisterRouterFunc(&proto.C2SServiceAssociate{}, this.serviceAssociateFunc)
-	router.RouterMgr.RegisterRouterFunc(&proto.C2SServicePing{}, this.servicePingFunc)
+	router.RouterMgr.AddRouter(&proto.C2SServiceAssociate{}, this.serviceAssociateFunc)
+	router.RouterMgr.AddRouter(&proto.C2SServicePing{}, this.servicePingFunc)
 }
 
 func (this *clusterServer) serviceAssociateFunc(conn network.IConn, content []byte) {
@@ -57,7 +63,7 @@ func (this *clusterServer) serviceAssociateFunc(conn network.IConn, content []by
 		return
 	}
 	this.network.GetConns().Add(conn)
-	conn.Send(&proto.S2CServiceAssociate{})
+	conn.SendMsg(&proto.S2CServiceAssociate{})
 }
 
 func (this *clusterServer) servicePingFunc(conn network.IConn, content []byte) {

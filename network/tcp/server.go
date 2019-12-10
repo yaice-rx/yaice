@@ -1,11 +1,9 @@
 package tcp
 
 import (
-	"errors"
 	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/resource"
-	router_ "github.com/yaice-rx/yaice/router"
 	"net"
 	"strconv"
 	"sync"
@@ -17,10 +15,6 @@ type TCPServer struct {
 	listener *net.TCPListener
 	//连接列表
 	connManager network.IConnManager
-	//发送消息chan
-	sendMsgChan chan *network.Msg
-	//接收消息chan
-	receiveMsgChan chan *network.Msg
 }
 
 var TcpServerMgr = newTcpServer()
@@ -28,10 +22,8 @@ var TcpServerMgr = newTcpServer()
 // 创建服务句柄
 func newTcpServer() network.IServer {
 	serve := &TCPServer{
-		network:        "tcp",
-		connManager:    NewConnManager(),
-		sendMsgChan:    make(chan *network.Msg),
-		receiveMsgChan: make(chan *network.Msg),
+		network:     "tcp",
+		connManager: NewConnManager(),
 	}
 	return serve
 }
@@ -42,72 +34,42 @@ func (this *TCPServer) GetNetworkName() string {
 }
 
 // 开启网络服务
-func (this *TCPServer) Start() (int, error) {
-	for i := resource.ServiceResMgr.PortStart; i < resource.ServiceResMgr.PortEnd; i++ {
-		tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
-		if nil != err {
-			continue
-		}
-		listener, err := net.ListenTCP("tcp", tcpAddr)
-		if nil != err {
-			continue
-		}
-		this.listener = listener
-		go func() {
-			for {
-				conn, err := this.listener.AcceptTCP()
-				if nil != err || nil == conn {
-					continue
-				}
-				//添加用户句柄
-				dealConn := newConnect(conn)
-				this.connManager.Add(dealConn)
-				//如果当前连接数大于最大的连接数，则退出
-				if this.connManager.Len() > resource.ServiceResMgr.MaxConnectNumber {
-					this.listener.Close()
-					continue
-				}
-				//处理用户数据
-				go func(conn *net.TCPConn) {
-					tmpBuffer := make([]byte, 0)
-					var buffer = make([]byte, 1024)
-					for {
-						//read
-						n, e := conn.Read(buffer)
-						if e != nil {
-							logrus.Debug(conn.RemoteAddr().String(), " connection error: ", err)
-							return
-						}
-						//写入接收消息队列中
-						tmpBuffer = network.UnPacket(dealConn, append(tmpBuffer, buffer[:n]...), this.receiveMsgChan)
-					}
-				}(conn)
-			}
-		}()
-		return i, nil
-	}
-	return -1, errors.New("tcp port not found")
-}
-
-//读取网络数据
-func (this *TCPServer) Run() {
+func (this *TCPServer) Start(port chan int) {
 	go func() {
-		for {
-			select {
-			//调用服务器内部方法
-			case data := <-this.receiveMsgChan:
-				func_ := router_.RouterMgr.CallRouterFunc(int32(data.ID))
-				if func_ != nil {
-					func_(data.Conn, data.Data)
-				}
-				break
-			//调用网络流
-			case <-this.sendMsgChan:
-				break
-			default:
-				break
+		for i := resource.ServiceResMgr.PortStart; i < resource.ServiceResMgr.PortEnd; i++ {
+			tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
+			if nil != err {
+				continue
 			}
+			listener, err := net.ListenTCP("tcp", tcpAddr)
+			if nil != err {
+				continue
+			}
+			this.listener = listener
+			go func() {
+				for {
+					tcpConn, err := this.listener.AcceptTCP()
+					if nil != err || nil == tcpConn {
+						continue
+					}
+					//添加用户句柄
+					conn := newConnect(tcpConn)
+					this.connManager.Add(conn)
+					//如果当前连接数大于最大的连接数，则退出
+					if this.connManager.Len() > resource.ServiceResMgr.MaxConnectNumber {
+						this.listener.Close()
+						continue
+					}
+					//处理用户数据
+					go conn.Start()
+				}
+			}()
+			port <- i
+			logrus.Debug("tcp listen port :", i)
+			return
 		}
+		port <- -1
+		logrus.Debug("tcp port not found")
 	}()
 }
 

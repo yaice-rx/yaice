@@ -3,23 +3,20 @@ package tcp
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/network"
-	router_ "github.com/yaice-rx/yaice/router"
 	"net"
 	"sync"
 )
 
 type TCPClient struct {
 	sync.Mutex
-	connManager    network.IConnManager
-	receiveMsgChan chan *network.Msg
+	ConnManager network.IConnManager
 }
 
 var TCPClientMgr = newTCPClientMgr()
 
 func newTCPClientMgr() network.IClient {
 	return &TCPClient{
-		connManager:    NewConnManager(),
-		receiveMsgChan: make(chan *network.Msg),
+		ConnManager: NewConnManager(),
 	}
 }
 
@@ -38,7 +35,6 @@ func (this *TCPClient) Connect(IP string, port int) network.IConn {
 	dealConn := newConnect(conn)
 	//接收数据
 	go this.receivePackets(dealConn)
-	go this.run()
 	return dealConn
 }
 
@@ -53,35 +49,17 @@ func (this *TCPClient) receivePackets(conn network.IConn) {
 			logrus.Debug(conn.GetConn().(*net.TCPConn).RemoteAddr().String(), " connection error: ", err)
 			return
 		}
-		logrus.Println("receive data client")
 		//写入接收消息队列中
-		tmpBuffer = network.UnPacket(conn, append(tmpBuffer, buffer[:n]...), this.receiveMsgChan)
+		dataPack := NewPacket()
+		tmpBuffer = dataPack.Unpack(conn, append(tmpBuffer, buffer[:n]...))
 	}
 }
 
-func (this *TCPClient) run() {
-	go func() {
-		for {
-			select {
-			//调用服务器内部方法
-			case data := <-this.receiveMsgChan:
-				func_ := router_.RouterMgr.CallRouterFunc(int32(data.ID))
-				if func_ != nil {
-					func_(data.Conn, data.Data)
-				}
-				break
-			default:
-				break
-			}
-		}
-	}()
-}
-
 func (this *TCPClient) GetConns() network.IConnManager {
-	return this.connManager
+	return this.ConnManager
 }
 
 //停止
 func (this *TCPClient) Stop() {
-	this.connManager.ClearConn()
+	this.ConnManager.ClearConn()
 }

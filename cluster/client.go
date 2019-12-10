@@ -12,6 +12,7 @@ import (
 
 //集群-客户端
 type IClusterClient interface {
+	ConnectService(config *clusterConf)
 }
 
 //集群-客户端
@@ -51,9 +52,10 @@ func (this *clusterClient) connectServices() {
 			if conn == nil {
 				continue
 			}
+
 			//发送服务关联协议数据
 			protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
-			err := conn.Send(&protoData)
+			err := conn.SendMsg(&protoData)
 			if err != nil {
 				continue
 			}
@@ -61,9 +63,29 @@ func (this *clusterClient) connectServices() {
 	}
 }
 
+func (this *clusterClient) ConnectService(config *clusterConf) {
+	//首先判读服务是否属于自己
+	if config.TypeId == ClusterConfMgr.TypeId {
+		return
+	}
+	if config.AllowConnect {
+		//连接服务句柄
+		conn := this.network.Connect(config.InHost, config.InPort)
+		if conn == nil {
+			return
+		}
+		//发送服务关联协议数据
+		protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
+		err := conn.SendMsg(&protoData)
+		if err != nil {
+			return
+		}
+	}
+}
+
 // 注册路由方法
 func (this *clusterClient) registerRouter() {
-	router.RouterMgr.RegisterRouterFunc(&proto_.S2CServiceAssociate{}, this.serviceAssociateFunc)
+	router.RouterMgr.AddRouter(&proto_.S2CServiceAssociate{}, this.serviceAssociateFunc)
 }
 
 func (this *clusterClient) serviceAssociateFunc(conn network.IConn, content []byte) {
@@ -76,7 +98,7 @@ func (this *clusterClient) serviceAssociateFunc(conn network.IConn, content []by
 	//心跳
 	job.Crontab.AddCronTask(10, -1, func() {
 		data := proto_.C2SServicePing{}
-		if conn.Send(&data) != nil {
+		if conn.SendMsg(&data) != nil {
 			return
 		}
 	})

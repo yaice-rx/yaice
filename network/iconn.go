@@ -5,7 +5,8 @@ import (
 )
 
 type IConn interface {
-	Send(message proto.Message) error
+	SendMsg(message proto.Message) error
+	Start()
 	Stop()
 	GetConn() interface{}
 	GetGuid() string
