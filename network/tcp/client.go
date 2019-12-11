@@ -33,6 +33,7 @@ func (this *TCPClient) Connect(IP string, port int) network.IConn {
 		return nil
 	}
 	dealConn := newConnect(conn)
+	this.ConnManager.Add(dealConn)
 	//接收数据
 	go this.receivePackets(dealConn)
 	return dealConn

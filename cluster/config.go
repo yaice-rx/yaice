@@ -1,6 +1,6 @@
 package cluster
 
-type clusterConf struct {
+type ClusterConf struct {
 	Pid                int      //服务进程编号
 	TypeId             string   //服务类型
 	GroupId            string   //服务组编号
@@ -15,6 +15,6 @@ type clusterConf struct {
 
 var ClusterConfMgr = newClusterConf()
 
-func newClusterConf() *clusterConf {
-	return &clusterConf{}
+func newClusterConf() *ClusterConf {
+	return &ClusterConf{}
 }
