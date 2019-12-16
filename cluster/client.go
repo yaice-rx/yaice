@@ -43,8 +43,17 @@ func (this *ClusterClient) Run() {
 				if dealConn == nil {
 					continue
 				}
+				if data.Pid == ClusterConfMgr.Pid {
+					continue
+				}
 				this.ConnManager.Add(dealConn)
 				dealConn.Start()
+				//发送消息
+				protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
+				err := dealConn.SendMsg(&protoData)
+				if err != nil {
+					logrus.Debug(dealConn, "发送消息失败，", err.Error())
+				}
 				break
 			}
 		}

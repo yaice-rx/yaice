@@ -58,6 +58,7 @@ func (this *yaice) AdaptationNetwork(network string) {
 	switch network {
 	case "tcp":
 		this._Network = tcp.TcpServerMgr
+		cluster.ClusterConfMgr.Network = this._Network.GetNetworkName()
 		break
 	case "kcp":
 		break
@@ -66,7 +67,7 @@ func (this *yaice) AdaptationNetwork(network string) {
 	default:
 		break
 	}
-	cluster.ClusterConfMgr.Network = this._Network.GetNetworkName()
+
 }
 
 func (this *yaice) AddRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {

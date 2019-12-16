@@ -75,9 +75,11 @@ func (this *Connect) SendMsg(message proto.Message) error {
 	if err != nil {
 		return err
 	}
-	protoNumber := utils.ProtocalNumber(utils.GetProtoName(message))
-	dataPack := NewPacket()
-	this.sendQueue <- dataPack.Pack(NewMessage(protoNumber, data, this))
+	go func() {
+		protoNumber := utils.ProtocalNumber(utils.GetProtoName(message))
+		dataPack := NewPacket()
+		this.sendQueue <- dataPack.Pack(NewMessage(protoNumber, data, this))
+	}()
 	return nil
 }
 

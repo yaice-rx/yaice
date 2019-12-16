@@ -35,7 +35,7 @@ type ClusterServiceManager struct {
 var ClusterServiceManagerMgr = _NewClusterServiceManager()
 
 func _NewClusterServiceManager() IClusterServiceManager {
-	if resource.ServiceResMgr != nil {
+	if resource.ServiceResMgr == nil {
 		logrus.Debug("服务器资源文件尚未加载")
 		return nil
 	}
