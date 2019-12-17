@@ -9,6 +9,10 @@ message c2s_service_associate {
 }
 
 message s2c_service_associate{
+    //类型名称
+   string typeName = 1;
+   //服务编号
+   int64 pid = 2;
 }
 
 //ping

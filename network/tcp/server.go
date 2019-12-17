@@ -1,5 +1,6 @@
 package tcp
 
+import "C"
 import (
 	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/network"
@@ -7,6 +8,8 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type TCPServer struct {
@@ -14,7 +17,7 @@ type TCPServer struct {
 	network  string
 	listener *net.TCPListener
 	//连接列表
-	connManager network.IConnManager
+	connectCount uint32
 }
 
 var TcpServerMgr = newTcpServer()
@@ -22,8 +25,7 @@ var TcpServerMgr = newTcpServer()
 // 创建服务句柄
 func newTcpServer() network.IServer {
 	serve := &TCPServer{
-		network:     "tcp",
-		connManager: NewConnManager(),
+		network: "tcp",
 	}
 	return serve
 }
@@ -52,14 +54,15 @@ func (this *TCPServer) Start(port chan int) {
 			if nil != err || nil == tcpConn {
 				continue
 			}
-			//添加用户句柄
-			conn := newConnect(tcpConn)
-			this.connManager.Add(conn)
 			//如果当前连接数大于最大的连接数，则退出
-			if this.connManager.Len() > resource.ServiceResMgr.MaxConnectNumber {
+			if this.connectCount > uint32(resource.ServiceResMgr.MaxConnectNumber) {
 				this.listener.Close()
 				continue
 			}
+			tcpConn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Second))
+			atomic.AddUint32(&this.connectCount, 1)
+			//添加用户句柄
+			conn := newConnect(tcpConn)
 			//处理用户数据
 			go conn.Start()
 		}
@@ -67,10 +70,6 @@ func (this *TCPServer) Start(port chan int) {
 	}
 	port <- -1
 	logrus.Debug("tcp port not found")
-}
-
-func (this *TCPServer) GetConns() network.IConnManager {
-	return this.connManager
 }
 
 // 关闭网络接口

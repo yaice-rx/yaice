@@ -67,7 +67,6 @@ func (this *yaice) AdaptationNetwork(network string) {
 	default:
 		break
 	}
-
 }
 
 func (this *yaice) AddRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {
