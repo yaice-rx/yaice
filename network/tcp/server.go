@@ -8,7 +8,6 @@ import (
 	"net"
 	"strconv"
 	"sync"
-	"sync/atomic"
 )
 
 type TCPServer struct {
@@ -59,7 +58,7 @@ func (this *TCPServer) Start(port chan int) {
 				continue
 			}
 			//tcpConn.SetReadDeadline(time.Now().Add(time.Duration(20) * time.Second))
-			atomic.AddUint32(&this.connectCount, 1)
+			//atomic.AddUint32(&this.connectCount, 1)
 			//添加用户句柄
 			conn := newConnect(tcpConn)
 			//处理用户数据
