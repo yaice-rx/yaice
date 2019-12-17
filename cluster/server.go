@@ -13,7 +13,6 @@ import (
 	"github.com/yaice-rx/yaice/proto"
 	"github.com/yaice-rx/yaice/resource"
 	"github.com/yaice-rx/yaice/router"
-	"net"
 	"strings"
 	"sync"
 	"time"
@@ -203,8 +202,8 @@ func (this *ClusterServiceManager) _RegisterMsgHandler() {
 	})
 
 	router.RouterMgr.AddRouter(&proto.C2SServicePing{}, func(conn network.IConn, content []byte) {
-		if conn.GetNetworkConn().(*net.TCPConn) != nil {
+		/*if conn.GetNetworkConn().(*net.TCPConn) != nil {
 			conn.GetNetworkConn().(*net.TCPConn).SetDeadline(time.Now().Add(time.Duration(20) * time.Second))
-		}
+		}*/
 	})
 }

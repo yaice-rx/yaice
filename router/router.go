@@ -2,11 +2,9 @@ package router
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/utils"
 	"sync"
-	"time"
 )
 
 type IRouter interface {
@@ -72,8 +70,6 @@ func (this *router) StartWorker(readQueue chan network.IMessage) {
 		select {
 		case data := <-readQueue:
 			this.DoRouterHandler(data)
-		case <-time.After(5 * time.Second):
-			logrus.Debug("conn dead now")
 		}
 	}
 }
