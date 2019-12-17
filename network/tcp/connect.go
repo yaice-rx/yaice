@@ -15,7 +15,6 @@ import (
 
 type Connect struct {
 	sendGuard sync.RWMutex
-	typeId    string
 	guid      string
 	session   *net.TCPConn
 	timer     int64
@@ -84,20 +83,8 @@ func (this *Connect) SendMsg(message proto.Message) error {
 	return nil
 }
 
-func (this *Connect) SetTypeId(typeId string) {
-	this.typeId = typeId
-}
-
-func (this *Connect) GetTypeId() string {
-	return this.typeId
-}
-
-func (this *Connect) GetNetworkConn() interface{} {
+func (this *Connect) GetConn() interface{} {
 	return this.session
-}
-
-func (this *Connect) ResetConnectTime() {
-	this.timer = time.Now().Unix() + 20
 }
 
 // 停止连接

@@ -1,13 +1,10 @@
 package cluster
 
 import (
-	"encoding/json"
 	"github.com/sirupsen/logrus"
-	"github.com/yaice-rx/yaice/job"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	proto_ "github.com/yaice-rx/yaice/proto"
-	"github.com/yaice-rx/yaice/router"
 	"sync"
 )
 
@@ -49,6 +46,7 @@ func (this *ClusterClient) Run() {
 				if data.Pid == ClusterConfMgr.Pid {
 					continue
 				}
+				this.ConnManager.Add(dealConn)
 				dealConn.Start()
 				//发送消息
 				protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
@@ -68,37 +66,20 @@ func (this *ClusterClient) Run() {
 			continue
 		}
 		if data.AllowConnect {
+			//连接服务句柄
 			dealConn := this._NetworkType.Connect(data.InHost, data.InPort)
 			if dealConn == nil {
 				logrus.Debug(data.InHost, "：", data.InPort, "连接失败")
 				continue
 			}
+			this.ConnManager.Add(dealConn)
 			dealConn.Start()
 			//发送消息
 			protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
 			err := dealConn.SendMsg(&protoData)
 			if err != nil {
-				logrus.Debug(dealConn, "发送消息失败，", err.Error(), protoData)
+				logrus.Debug(dealConn, "发送消息失败，", err.Error())
 			}
 		}
 	}
-}
-
-func (this *ClusterClient) _RegisterMsgHandler() {
-	router.RouterMgr.AddRouter(&proto_.S2CServiceAssociate{}, func(conn network.IConn, content []byte) {
-		var data proto_.S2CServiceAssociate
-		if json.Unmarshal(content, &data) != nil {
-			return
-		}
-		//连接服务句柄
-		this.ConnManager.Add(data.TypeName, conn)
-		//收到消息后，每10秒钟ping一次服务
-		job.Crontab.AddCronTask(10, -1, func() {
-			protoData := proto_.C2SServicePing{}
-			err := conn.SendMsg(&protoData)
-			if err != nil {
-				logrus.Debug(conn, "发送消息失败，", err.Error(), protoData)
-			}
-		})
-	})
 }

@@ -7,12 +7,9 @@ import (
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/constant"
-	"github.com/yaice-rx/yaice/job"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
-	"github.com/yaice-rx/yaice/proto"
 	"github.com/yaice-rx/yaice/resource"
-	"github.com/yaice-rx/yaice/router"
 	"strings"
 	"sync"
 	"time"
@@ -20,11 +17,8 @@ import (
 
 //集群服务治理
 type IClusterServiceManager interface {
-	//注册服务配置数据
 	RegisterClusterServiceData(data *ClusterConf) error
-	//获取服务配置
 	GetClusterServiceData() []*ClusterConf
-	//监听
 	Watch(data chan *ClusterConf)
 }
 
@@ -36,7 +30,6 @@ type ClusterServiceManager struct {
 	_Conn          *clientv3.Client
 	_LeaseRes      *clientv3.LeaseGrantResponse //自己配置租约
 	_KeepAliveChan <-chan *clientv3.LeaseKeepAliveResponse
-	_ConnManager   network.IConnManager
 }
 
 var ClusterServiceManagerMgr = _NewClusterServiceManager()
@@ -50,7 +43,6 @@ func _NewClusterServiceManager() IClusterServiceManager {
 		_NetworkType: tcp.TcpServerMgr,
 		_Path:        constant.ServerNamespace + "/" + ClusterConfMgr.GroupId + "/" + ClusterConfMgr.TypeId,
 		_Prefix:      constant.ServerNamespace,
-		_ConnManager: tcp.NewConnManager(),
 	}
 	config := clientv3.Config{
 		Endpoints:   strings.Split(resource.ServiceResMgr.EtcdConnectMap, ";"),
@@ -109,7 +101,7 @@ func (this *ClusterServiceManager) GetClusterServiceData() []*ClusterConf {
 	if err != nil {
 		return nil
 	}
-	for _, value := range this.readData(resp) {
+	for _, value := range this._ReadData(resp) {
 		config := &ClusterConf{}
 		if json.Unmarshal(value, config) != nil {
 			continue
@@ -142,7 +134,7 @@ func (this *ClusterServiceManager) Watch(dataChan chan *ClusterConf) {
 }
 
 //读取节点数据
-func (this *ClusterServiceManager) readData(resp *clientv3.GetResponse) [][]byte {
+func (this *ClusterServiceManager) _ReadData(resp *clientv3.GetResponse) [][]byte {
 	var data [][]byte
 	if resp == nil || resp.Kvs == nil {
 		return nil
@@ -181,29 +173,4 @@ func (this *ClusterServiceManager) listenLease() {
 			break
 		}
 	}
-}
-
-func (this *ClusterServiceManager) _RegisterMsgHandler() {
-	router.RouterMgr.AddRouter(&proto.C2SServiceAssociate{}, func(conn network.IConn, content []byte) {
-		var data proto.C2SServiceAssociate
-		if json.Unmarshal(content, &data) != nil {
-			return
-		}
-		//连接服务句柄
-		this._ConnManager.Add(data.TypeName, conn)
-		//收到消息后，每10秒钟ping一次服务
-		job.Crontab.AddCronTask(10, -1, func() {
-			protoData := proto.C2SServicePing{}
-			err := conn.SendMsg(&protoData)
-			if err != nil {
-				logrus.Debug(conn, "发送消息失败，", err.Error(), protoData)
-			}
-		})
-	})
-
-	router.RouterMgr.AddRouter(&proto.C2SServicePing{}, func(conn network.IConn, content []byte) {
-		/*if conn.GetNetworkConn().(*net.TCPConn) != nil {
-			conn.GetNetworkConn().(*net.TCPConn).SetDeadline(time.Now().Add(time.Duration(20) * time.Second))
-		}*/
-	})
 }

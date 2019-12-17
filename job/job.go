@@ -2,8 +2,8 @@ package job
 
 import (
 	"github.com/satori/go.uuid"
-	"sync"
 	"time"
+	"sync"
 )
 
 type JobItem struct {
@@ -15,10 +15,9 @@ type JobItem struct {
 }
 
 type Cron struct {
-	sync.Mutex
 	cronInterface
 	running bool
-	entries []*JobItem
+	entries  []*JobItem
 }
 
 var Crontab = newCrontab()
@@ -39,8 +38,9 @@ type cronInterface interface {
 //加入工作列表
 // t = 秒
 func (this *Cron) AddCronTask(_time int64, execNum int, fn_ func()) {
-	this.Lock()
-	defer this.Unlock()
+	var _sync sync.Mutex
+	_sync.Lock()
+	defer _sync.Unlock()
 	job := &JobItem{
 		guid:         uuid.NewV4().String(),
 		fn:           fn_,
@@ -59,6 +59,9 @@ func (this *Cron) exec() {
 			select {
 			case <-timer.C:
 				for k := 0; k < len(this.entries); k++ {
+					if this.entries[k] == nil{
+						continue
+					}
 					curTime := time.Now().Unix()
 					if (this.entries[k].actionTime + this.entries[k].intervalTime) <= curTime {
 						go this.entries[k].fn()
@@ -67,13 +70,12 @@ func (this *Cron) exec() {
 							this.entries[k].execNum--
 						}
 						if this.entries[k].execNum == 0 {
-							this.Lock()
 							this.entries = append(this.entries[:k], this.entries[k+1:]...)
-							this.Unlock()
 						}
 					}
 				}
 			}
 		}
 	}()
+
 }
