@@ -26,7 +26,7 @@ func newCrontab() *Cron {
 		running: true,
 		entries: make(chan *JobItem, 1),
 	}
-	go this.exec()
+	this.exec()
 	return this
 }
 
@@ -49,25 +49,30 @@ func (this *Cron) AddCronTask(_time int64, execNum int, fn_ func()) {
 
 func (this *Cron) exec() {
 	timer := time.NewTicker(1 * time.Second)
-	defer timer.Stop()
-	for {
-		select {
-		case <-timer.C:
-			if len(this.entries) > 0 {
-				for v := range this.entries {
-					curTime := time.Now().Unix()
-					if (v.actionTime + v.intervalTime) <= curTime {
-						v.fn()
-						v.actionTime = curTime
-						if v.execNum != -1 {
-							v.execNum--
+	go func() {
+		defer timer.Stop()
+		for {
+			select {
+			case <-timer.C:
+				if len(this.entries) > 0 {
+					go func() {
+						for v := range this.entries {
+							curTime := time.Now().Unix()
+							if (v.actionTime + v.intervalTime) <= curTime {
+								v.fn()
+								v.actionTime = curTime
+								if v.execNum != -1 {
+									v.execNum--
+								}
+							}
+							if v.execNum > 0 || v.execNum == -1 {
+								this.entries <- v
+							}
 						}
-					}
-					if v.execNum > 0 || v.execNum == -1 {
-						this.entries <- v
-					}
+					}()
 				}
 			}
 		}
-	}
+	}()
+
 }
