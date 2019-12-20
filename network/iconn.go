@@ -8,6 +8,7 @@ type IConn interface {
 	SendMsg(message proto.Message) error
 	Start()
 	Stop()
-	GetConn() interface{}
+	GetNetworkConn() interface{}
+	GetConnectType() string
 	GetGuid() string
 }

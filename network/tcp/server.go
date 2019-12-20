@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"time"
 )
 
 type TCPServer struct {
@@ -38,13 +39,14 @@ func (this *TCPServer) Start(port chan int) {
 	for i := resource.ServiceResMgr.PortStart; i < resource.ServiceResMgr.PortEnd; i++ {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
 		if nil != err {
+			logrus.Debug("tcp resolve address :", i, " fail,error :", err)
 			continue
 		}
 		listener, err := net.ListenTCP("tcp", tcpAddr)
 		if nil != err {
+			logrus.Debug("tcp listen port :", i, " fail,error :", err)
 			continue
 		}
-		logrus.Debug("tcp listen port :", i)
 		port <- i
 		this.listener = listener
 		for {
@@ -52,6 +54,7 @@ func (this *TCPServer) Start(port chan int) {
 			if nil != err || nil == tcpConn {
 				continue
 			}
+			tcpConn.SetReadDeadline(time.Now().Add(5 * time.Second))
 			//添加用户句柄
 			conn := newConnect(tcpConn)
 			this.connManager.Add(conn)
@@ -61,12 +64,11 @@ func (this *TCPServer) Start(port chan int) {
 				continue
 			}
 			//处理用户数据
-			go conn.Start()
+			conn.Start()
 		}
 		return
 	}
 	port <- -1
-	logrus.Debug("tcp port not found")
 }
 
 func (this *TCPServer) GetConns() network.IConnManager {

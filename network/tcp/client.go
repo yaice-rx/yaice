@@ -45,9 +45,9 @@ func (this *TCPClient) receivePackets(conn network.IConn) {
 	var buffer = make([]byte, 1024)
 	for {
 		//read
-		n, err := conn.GetConn().(*net.TCPConn).Read(buffer)
+		n, err := conn.GetNetworkConn().(*net.TCPConn).Read(buffer)
 		if err != nil {
-			logrus.Debug(conn.GetConn().(*net.TCPConn).RemoteAddr().String(), " connection error: ", err)
+			logrus.Debug(conn.GetNetworkConn().(*net.TCPConn).RemoteAddr().String(), " connection error: ", err)
 			return
 		}
 		//写入接收消息队列中

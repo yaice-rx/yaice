@@ -4,7 +4,9 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/utils"
+	"net"
 	"sync"
+	"time"
 )
 
 type IRouter interface {
@@ -13,6 +15,7 @@ type IRouter interface {
 	GetRoutersLen() int
 	SendMsgToReadQueue(data network.IMessage)
 	Run()
+	Stop()
 }
 
 type router struct {
@@ -57,19 +60,34 @@ func (this *router) GetRoutersLen() int {
 	return len(this.Routers)
 }
 
-func (this *router) Run() {
-	go this.StartWorker(this.ReadQueue)
-}
-
 func (this *router) SendMsgToReadQueue(data network.IMessage) {
 	this.ReadQueue <- data
 }
 
-func (this *router) StartWorker(readQueue chan network.IMessage) {
+func (this *router) _StartWorker(readQueue chan network.IMessage) {
 	for {
 		select {
 		case data := <-readQueue:
+			switch data.GetConn().GetConnectType() {
+			case "tcp":
+				data.GetConn().GetNetworkConn().(*net.TCPConn).SetDeadline(time.Now().Add(4 * time.Second))
+				break
+			case "udp":
+				break
+			case "kcp":
+				break
+			case "raknet":
+				break
+			}
 			this.DoRouterHandler(data)
 		}
 	}
+}
+
+func (this *router) Run() {
+	go this._StartWorker(this.ReadQueue)
+}
+
+func (this *router) Stop() {
+	close(this.ReadQueue)
 }

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/cluster"
-	"github.com/yaice-rx/yaice/job"
+	"github.com/yaice-rx/yaice/cron"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/resource"
@@ -27,29 +27,27 @@ type IServer interface {
 var running = make(chan bool, 1)
 
 type yaice struct {
-	_RouterMgr        router.IRouter  //路由配置
-	_Network          network.IServer //适配网络
-	_Job              *job.Cron
-	_ServiceResMgr    *resource.ServiceResource      //资源配置
-	_ClusterClientMgr cluster.IClusterClient         //集群-客户端
-	_ClusterServerMgr cluster.IClusterServiceManager //集群-服务器
+	_RouterMgr     router.IRouter  //路由配置
+	_Network       network.IServer //适配网络
+	_Cron          cron.ICron
+	_ServiceResMgr *resource.ServiceResource //资源配置
+	_Cluster       cluster.ICluster
 }
 
 func NewServer(typeId string, groundId string, allowConn bool) IServer {
 	server := &yaice{
-		_Job:              job.Crontab,
-		_RouterMgr:        router.RouterMgr,                 //路由配置
-		_ServiceResMgr:    resource.ServiceResMgr,           //系统资源配置
-		_ClusterClientMgr: cluster.ClusterClientMgr,         //客户端集群
-		_ClusterServerMgr: cluster.ClusterServiceManagerMgr, //服务器内部
+		_Cron:          cron.CronMgr,
+		_RouterMgr:     router.RouterMgr,       //路由配置
+		_ServiceResMgr: resource.ServiceResMgr, //系统资源配置
+		_Cluster:       cluster.ClusterMgr,     //集群服务
 	}
 	//更新服务配置文件
-	cluster.ClusterConfMgr.Pid = os.Getpid()
-	cluster.ClusterConfMgr.TypeId = typeId
-	cluster.ClusterConfMgr.GroupId = groundId
-	cluster.ClusterConfMgr.AllowConnect = allowConn
-	cluster.ClusterConfMgr.OutHost = server._ServiceResMgr.ExtranetHost
-	cluster.ClusterConfMgr.InHost = server._ServiceResMgr.IntranetHost
+	cluster.ServerConfMgr.Pid = os.Getpid()
+	cluster.ServerConfMgr.TypeId = typeId
+	cluster.ServerConfMgr.GroupId = groundId
+	cluster.ServerConfMgr.AllowConnect = allowConn
+	cluster.ServerConfMgr.OutHost = server._ServiceResMgr.ExtranetHost
+	cluster.ServerConfMgr.InHost = server._ServiceResMgr.IntranetHost
 	return server
 }
 
@@ -58,7 +56,7 @@ func (this *yaice) AdaptationNetwork(network string) {
 	switch network {
 	case "tcp":
 		this._Network = tcp.TcpServerMgr
-		cluster.ClusterConfMgr.Network = this._Network.GetNetworkName()
+		cluster.ServerConfMgr.Network = this._Network.GetNetworkName()
 		break
 	case "kcp":
 		break
@@ -67,7 +65,6 @@ func (this *yaice) AdaptationNetwork(network string) {
 	default:
 		break
 	}
-
 }
 
 func (this *yaice) AddRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {
@@ -77,7 +74,7 @@ func (this *yaice) AddRouter(message proto.Message, handler func(conn network.IC
 //启动服务
 func (this *yaice) Serve() error {
 	//开启外网运行
-	if this._Network != nil {
+	if this._Network == nil {
 		portChan := make(chan int)
 		go this._Network.Start(portChan)
 		port := <-portChan
@@ -85,12 +82,12 @@ func (this *yaice) Serve() error {
 			return errors.New("port listen fail")
 		}
 		close(portChan)
-		cluster.ClusterConfMgr.OutPort = port
+		cluster.ServerConfMgr.OutPort = port
 	}
 	//开启内网运行
-	this._ClusterClientMgr.Run()
+	this._Cluster.Start()
 	//注册配置中心数据
-	this._ClusterServerMgr.RegisterClusterServiceData(cluster.ClusterConfMgr)
+	this._Cluster.RegisterServerConfData()
 	//退出运行
 	<-running
 	return nil
@@ -98,4 +95,6 @@ func (this *yaice) Serve() error {
 
 //停止服务器方法
 func (this *yaice) Stop() {
+	this._Cron.Stop()
+	this._RouterMgr.Stop()
 }

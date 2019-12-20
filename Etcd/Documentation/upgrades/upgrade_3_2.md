@@ -157,8 +157,8 @@ Before and after
 -func NewKVFromKVClient(remote pb.KVClient) KV {
 +func NewKVFromKVClient(remote pb.KVClient, c *Client) KV {
 
--func NewClusterFromClusterClient(remote pb.ClusterClient) Cluster {
-+func NewClusterFromClusterClient(remote pb.ClusterClient, c *Client) Cluster {
+-func NewClusterFromClusterClient(remote pb.ClusterClientManager) Cluster {
++func NewClusterFromClusterClient(remote pb.ClusterClientManager, c *Client) Cluster {
 
 -func NewLeaseFromLeaseClient(remote pb.LeaseClient, keepAliveTimeout time.Duration) Lease {
 +func NewLeaseFromLeaseClient(remote pb.LeaseClient, c *Client, keepAliveTimeout time.Duration) Lease {

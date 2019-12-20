@@ -1,6 +1,6 @@
 package cluster
 
-type ClusterConf struct {
+type ServerConf struct {
 	Pid                int      //服务进程编号
 	TypeId             string   //服务类型
 	GroupId            string   //服务组编号
@@ -13,8 +13,8 @@ type ClusterConf struct {
 	AllowConnect       bool     //准入连接
 }
 
-var ClusterConfMgr = newClusterConf()
+var ServerConfMgr = _NewClusterConf()
 
-func newClusterConf() *ClusterConf {
-	return &ClusterConf{}
+func _NewClusterConf() *ServerConf {
+	return &ServerConf{}
 }

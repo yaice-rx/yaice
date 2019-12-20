@@ -9,47 +9,52 @@ import (
 )
 
 //集群-客户端
-type IClusterClient interface {
-	Run()
+type iClientManager interface {
+	RegisterData(data *ServerConf) error
+	Run() error
+	Stop()
 }
 
 //集群-客户端
-type ClusterClient struct {
+type clientManager struct {
 	sync.Mutex
-	_NetworkType network.IClient //选择网络连接方式
-	_MsgDataChan chan *ClusterConf
+	_Network     network.IClient //选择网络连接方式
+	_MsgDataChan chan *ServerConf
+	_EtcdManager IEtcdManager
 	ConnManager  network.IConnManager
 }
 
-//集群客户端
-var ClusterClientMgr = _NewClusterClient()
-
-func _NewClusterClient() IClusterClient {
-	this := &ClusterClient{
-		_NetworkType: tcp.TCPClientMgr,
-		_MsgDataChan: make(chan *ClusterConf),
+func _NewClientManger() iClientManager {
+	this := &clientManager{
+		_Network:     tcp.TCPClientMgr,
+		_MsgDataChan: make(chan *ServerConf),
 		ConnManager:  tcp.NewConnManager(),
+		_EtcdManager: _NewEtcdManager(),
 	}
 	return this
 }
 
-func (this *ClusterClient) Run() {
-	go ClusterServiceManagerMgr.Watch(this._MsgDataChan)
+func (this *clientManager) RegisterData(data *ServerConf) error {
+	return this._EtcdManager.RegisterData(data)
+}
+
+func (this *clientManager) Run() error {
+	go this._EtcdManager.Watch(this._MsgDataChan)
 	go func() {
 		for {
 			select {
 			case data := <-this._MsgDataChan:
-				dealConn := this._NetworkType.Connect(data.InHost, data.InPort)
+				dealConn := this._Network.Connect(data.InHost, data.InPort)
 				if dealConn == nil {
 					continue
 				}
-				if data.Pid == ClusterConfMgr.Pid {
+				if data.Pid == ServerConfMgr.Pid {
 					continue
 				}
 				this.ConnManager.Add(dealConn)
 				dealConn.Start()
 				//发送消息
-				protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
+				protoData := proto_.C2SServiceAssociate{TypeName: ServerConfMgr.TypeId, Pid: int64(ServerConfMgr.Pid)}
 				err := dealConn.SendMsg(&protoData)
 				if err != nil {
 					logrus.Debug(dealConn, "发送消息失败，", err.Error())
@@ -59,15 +64,15 @@ func (this *ClusterClient) Run() {
 		}
 	}()
 	//开启连接
-	for _, data := range ClusterServiceManagerMgr.GetClusterServiceData() {
+	for _, data := range this._EtcdManager.GetData() {
 		//首先判读服务是否属于自己
-		if data.TypeId == ClusterConfMgr.TypeId {
+		if data.TypeId == ServerConfMgr.TypeId {
 			logrus.Debug("类型[" + data.TypeId + "]相同，不能连接")
 			continue
 		}
 		if data.AllowConnect {
 			//连接服务句柄
-			dealConn := this._NetworkType.Connect(data.InHost, data.InPort)
+			dealConn := this._Network.Connect(data.InHost, data.InPort)
 			if dealConn == nil {
 				logrus.Debug(data.InHost, "：", data.InPort, "连接失败")
 				continue
@@ -75,11 +80,17 @@ func (this *ClusterClient) Run() {
 			this.ConnManager.Add(dealConn)
 			dealConn.Start()
 			//发送消息
-			protoData := proto_.C2SServiceAssociate{TypeName: ClusterConfMgr.TypeId, Pid: int64(ClusterConfMgr.Pid)}
+			protoData := proto_.C2SServiceAssociate{TypeName: ServerConfMgr.TypeId, Pid: int64(ServerConfMgr.Pid)}
 			err := dealConn.SendMsg(&protoData)
 			if err != nil {
 				logrus.Debug(dealConn, "发送消息失败，", err.Error())
 			}
 		}
 	}
+	return nil
+}
+
+func (this *clientManager) Stop() {
+	close(this._MsgDataChan)
+	this._Network.Stop()
 }
