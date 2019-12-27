@@ -1,1 +1,0 @@
-protoc.exe --go_out=.  ./service_associate.proto
