@@ -1,4 +1,4 @@
-package cluster
+package config
 
 type Config struct {
 	Pid                int      //服务进程编号

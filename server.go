@@ -3,6 +3,7 @@ package yaice
 import (
 	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/cluster"
+	"github.com/yaice-rx/yaice/cluster/config"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/router"
@@ -24,7 +25,7 @@ type server struct {
 	rpcMgr     rpc.IRPC
 	clusterMgr cluster.IServer
 	serverMgr  network.IServer
-	config     cluster.Config
+	config     config.Config
 	etcdConns  []string
 }
 
@@ -33,7 +34,7 @@ func NewServer(typeId string, serverGroup string, etcdConns []string) IServer {
 		routerMgr:  router.RouterMgr,
 		rpcMgr:     rpc.RPCMgr,
 		clusterMgr: cluster.ServerMgr,
-		config:     cluster.Config{},
+		config:     config.Config{},
 		etcdConns:  etcdConns,
 	}
 	server.config.TypeId = typeId

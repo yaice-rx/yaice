@@ -6,7 +6,7 @@ import (
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
-	"github.com/yaice-rx/yaice/cluster"
+	"github.com/yaice-rx/yaice/cluster/config"
 	"github.com/yaice-rx/yaice/constant"
 	"github.com/yaice-rx/yaice/rpc"
 	"google.golang.org/grpc"
@@ -17,7 +17,7 @@ import (
 
 type IEtcdManager interface {
 	Listen(connects []string) error
-	Set(key string, data cluster.Config) error
+	Set(key string, data config.Config) error
 	Close()
 }
 
@@ -58,7 +58,7 @@ func (s *_EtcdManager) Listen(connects []string) error {
 		return nil
 	}
 	for _, value := range s.readData(resp) {
-		config := &cluster.Config{}
+		config := &config.Config{}
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		if json.Unmarshal(value, config) != nil {
 			continue
@@ -118,7 +118,7 @@ func (s *_EtcdManager) watch() {
 		rch := watcher.Watch(context.TODO(), s.prefix, clientv3.WithPrefix())
 		for response := range rch {
 			for _, event := range response.Events {
-				config := &cluster.Config{}
+				config := &config.Config{}
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				json.Unmarshal(event.Kv.Value, config)
 				switch event.Type {

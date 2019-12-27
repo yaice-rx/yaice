@@ -1,6 +1,7 @@
 package cluster
 
 import (
+	"github.com/yaice-rx/yaice/cluster/config"
 	"github.com/yaice-rx/yaice/cluster/etcd_server"
 	"github.com/yaice-rx/yaice/rpc"
 	"google.golang.org/grpc"
@@ -10,7 +11,7 @@ import (
 
 type IServer interface {
 	Start(conns []string) error
-	Set(config Config)
+	Set(config config.Config)
 	Listen(startPort int, endPort int) int
 	Close()
 }
@@ -32,7 +33,7 @@ func (s *Server) Start(conns []string) error {
 	return s.etcdManger.Listen(conns)
 }
 
-func (s *Server) Set(config Config) {
+func (s *Server) Set(config config.Config) {
 	s.etcdManger.Set(config.ServerGroup+"+"+config.TypeId+"/"+strconv.Itoa(config.Pid), config)
 }
 
