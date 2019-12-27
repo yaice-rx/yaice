@@ -9,7 +9,7 @@ import (
 
 type router struct {
 	sync.RWMutex
-	routers map[uint32]func(conn network.IConn, content []byte)
+	routers map[int]func(conn network.IConn, content []byte)
 }
 
 var RouterMgr = _NewRouterMgr()

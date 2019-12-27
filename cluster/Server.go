@@ -1,8 +1,8 @@
 package cluster
 
 import (
-	"github.com/yaice-rx/yaice/cluster/config"
 	"github.com/yaice-rx/yaice/cluster/etcd_server"
+	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/rpc"
 	"google.golang.org/grpc"
 	"net"

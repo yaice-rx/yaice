@@ -6,7 +6,7 @@ import (
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/json-iterator/go"
 	"github.com/sirupsen/logrus"
-	"github.com/yaice-rx/yaice/cluster/config"
+	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/constant"
 	"github.com/yaice-rx/yaice/rpc"
 	"google.golang.org/grpc"
@@ -80,7 +80,7 @@ func (s *_EtcdManager) Listen(connects []string) error {
 	return nil
 }
 
-func (s *_EtcdManager) Set(key string, data cluster.Config) error {
+func (s *_EtcdManager) Set(key string, data config.Config) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonData, err := json.Marshal(data)
 	if err != nil {
