@@ -28,7 +28,7 @@ func (dp *Packet) GetHeadLen() int {
 //封包
 func (dp *Packet) Pack(msg network.IMessage) []byte {
 	data := msg.GetData()
-	msgLength := uint32(len(data))
+	msgLength := len(data)
 	return append(append(utils.IntToBytes(msg.GetMsgId()), utils.IntToBytes(msgLength)...), data...)
 }
 

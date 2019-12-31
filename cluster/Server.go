@@ -39,10 +39,12 @@ func (s *Server) Set(config config.Config) {
 
 func (s *Server) Listen(startPort int, endPort int) int {
 	port := make(chan int)
+	defer close(port)
 	for i := startPort; i <= endPort; i++ {
 		go func() {
 			lis, err := net.Listen("tcp", ":"+strconv.Itoa(i))
 			if err != nil {
+				port <- -1
 				return
 			}
 			port <- i
@@ -51,10 +53,12 @@ func (s *Server) Listen(startPort int, endPort int) int {
 			rpc.RPCMgr.CallServerRPCFunc(server)
 			server.Serve(lis)
 		}()
+		data := <-port
+		if data > 0 {
+			return data
+		}
 	}
-	data := <-port
-	close(port)
-	return data
+	return -1
 }
 
 func (s *Server) Close() {

@@ -12,6 +12,9 @@ import (
 	"os"
 )
 
+//服务运行状态
+var shutdown = make(chan bool, 1)
+
 type IServer interface {
 	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
 	AddServerRpc(handler func(s *grpc.Server))
@@ -73,4 +76,11 @@ func (s *server) Serve(startPort int, endPort int) {
 	s.config.InPort = s.clusterMgr.Listen(startPort, endPort)
 	s.config.OutPort = s.serverMgr.Listen(startPort, endPort)
 	s.clusterMgr.Set(s.config)
+	<-shutdown
+	return
+}
+
+func (s *server) Close() {
+	s.clusterMgr.Close()
+	shutdown <- true
 }

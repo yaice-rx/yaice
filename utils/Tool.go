@@ -18,7 +18,7 @@ import (
 var mutex sync.Mutex
 
 //整形转换成字节
-func IntToBytes(n uint32) []byte {
+func IntToBytes(n int) []byte {
 	x := n
 	bytesBuffer := bytes.NewBuffer([]byte{})
 	binary.Write(bytesBuffer, binary.BigEndian, x)

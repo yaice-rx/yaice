@@ -23,18 +23,22 @@ func _NewServer() network.IServer {
 
 func (s *Server) Listen(startPort int, endPort int) int {
 	port := make(chan int)
+	defer close(port)
 	for i := startPort; i < endPort; i++ {
 		go func() {
 			tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
 			if nil != err {
+				port <- -1
 				logrus.Debug("tcp resolve address :", i, " fail,error :", err)
 				return
 			}
 			listener, err := net.ListenTCP("tcp", tcpAddr)
 			if nil != err {
+				port <- -1
 				logrus.Debug("tcp listen port :", i, " fail,error :", err)
 				return
 			}
+			logrus.Debug("listen port", i)
 			port <- i
 			s.listener = listener
 			for {
@@ -52,10 +56,12 @@ func (s *Server) Listen(startPort int, endPort int) int {
 				}
 			}
 		}()
+		portData := <-port
+		if portData > 0 {
+			return portData
+		}
 	}
-	data := <-port
-	close(port)
-	return data
+	return -1
 }
 
 func (s *Server) Close() {
