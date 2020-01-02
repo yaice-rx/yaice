@@ -1,4 +1,4 @@
-package etcd_server
+package ETCDManager
 
 import (
 	"context"

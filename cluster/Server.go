@@ -1,7 +1,7 @@
 package cluster
 
 import (
-	"github.com/yaice-rx/yaice/cluster/etcd_server"
+	"github.com/yaice-rx/yaice/cluster/ETCDManager"
 	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/rpc"
 	"google.golang.org/grpc"
@@ -17,7 +17,7 @@ type IServer interface {
 }
 
 type Server struct {
-	etcdManger etcd_server.IEtcdManager
+	etcdManger ETCDManager.IEtcdManager
 	server     *grpc.Server
 }
 
@@ -25,7 +25,7 @@ var ServerMgr = _NewServerMgr()
 
 func _NewServerMgr() IServer {
 	return &Server{
-		etcdManger: etcd_server.ServerMgr,
+		etcdManger: ETCDManager.ServerMgr,
 	}
 }
 
