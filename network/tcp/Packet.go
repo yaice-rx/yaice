@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"errors"
-	"github.com/yaice-rx/yaice/constant"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/utils"
 )
@@ -12,6 +11,8 @@ const (
 	ConstMsgLength    = 4 //消息长度
 	ConstHeaderLength = 4 //头部长度
 )
+
+const Header = "yaice$#"
 
 type Packet struct {
 }
@@ -39,7 +40,7 @@ func (dp *Packet) Unpack(buff []byte) ([]byte, []byte, int, error) {
 	if length < ConstMsgIdLength+ConstHeaderLength+ConstMsgLength {
 		return buff, nil, 0, nil
 	}
-	if string(buff[:ConstHeaderLength]) != constant.CONSTHEADER {
+	if string(buff[:ConstHeaderLength]) != Header {
 		return []byte{}, nil, 0, errors.New("header is not safe")
 	}
 	msgId := utils.BytesToInt(buff[ConstHeaderLength : ConstMsgIdLength+ConstHeaderLength])
@@ -51,6 +52,8 @@ func (dp *Packet) Unpack(buff []byte) ([]byte, []byte, int, error) {
 	}
 
 	data := buff[ConstMsgIdLength+ConstHeaderLength+ConstMsgLength : ConstMsgIdLength+ConstHeaderLength+ConstMsgLength+msgLength]
+
 	buffs := buff[ConstMsgIdLength+ConstHeaderLength+msgLength:]
+
 	return buffs, data, msgId, nil
 }

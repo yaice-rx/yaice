@@ -4,9 +4,11 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/json-iterator/go"
 	"github.com/satori/go.uuid"
+	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/router"
 	"github.com/yaice-rx/yaice/utils"
+	"go.uber.org/zap"
 	"net"
 	"time"
 )
@@ -77,6 +79,7 @@ func (c *Conn) Send(message proto.Message) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(message)
 	if err != nil {
+		log.AppLogger.Fatal(err.Error(), zap.String("function", "Send"))
 		return err
 	}
 	protoNumber := utils.ProtocalNumber(utils.GetProtoName(message))
