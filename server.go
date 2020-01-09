@@ -6,6 +6,7 @@ import (
 	"github.com/yaice-rx/yaice/cluster"
 	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/router"
 	"strconv"
 )
@@ -18,6 +19,10 @@ type IServer interface {
 	RegisterNodeData(config config.Config) error
 	GetNodeData(path string) []*config.Config
 	WatchNodeData(eventHandler func(isAdd mvccpb.Event_EventType, config *config.Config))
+	ListenTCP(startPort int, endPort int) int
+	ListenKCP(startPort int, endPort int) int
+	DialTCP(address string) network.IConn
+	DialKCP(address string) network.IConn
 	Close()
 }
 
@@ -71,6 +76,46 @@ func (s *server) GetNodeData(path string) []*config.Config {
  */
 func (s *server) WatchNodeData(eventHandler func(eventType mvccpb.Event_EventType, config *config.Config)) {
 	s.clusterMgr.Watch(eventHandler)
+}
+
+/**
+ * @func  监听端口
+ * @param startPort 监听端口范围开始，endPort 监听端口范围结束
+ */
+func (s *server) ListenTCP(startPort int, endPort int) int {
+	return tcp.ServerMgr.Listen(startPort, endPort)
+}
+
+/**
+ * 连接网络
+ * @param address 地址
+ */
+func (s *server) DialTCP(address string) network.IConn {
+	return tcp.TCPClientMgr.Connect(address)
+}
+
+/**
+ * 连接网络
+ * @param address 地址
+ */
+func (s *server) DialKCP(address string) network.IConn {
+	return tcp.TCPClientMgr.Connect(address)
+}
+
+/**
+ * @func  监听端口
+ * @param startPort 监听端口范围开始，endPort 监听端口范围结束
+ */
+func (s *server) ListenKCP(startPort int, endPort int) int {
+	return tcp.ServerMgr.Listen(startPort, endPort)
+}
+
+/**
+ * @func  监听端口
+ * @param startPort 监听端口范围开始，endPort 监听端口范围结束
+ */
+func (s *server) ListenKcp(startPort int, endPort int) int {
+	return -1
 }
 
 /**
