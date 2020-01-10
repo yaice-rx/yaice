@@ -44,6 +44,7 @@ func NewServer(endpoints []string) IServer {
 		config:     config.Config{},
 		connEtcds:  endpoints,
 	}
+	server.clusterMgr.Listen(server.connEtcds)
 	return server
 }
 

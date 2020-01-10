@@ -15,7 +15,9 @@ type router struct {
 var RouterMgr = _NewRouterMgr()
 
 func _NewRouterMgr() IRouter {
-	return &router{}
+	return &router{
+		routers: make(map[int]func(conn network.IConn, content []byte)),
+	}
 }
 
 func (r *router) AddRouter(msgObj proto.Message, handler func(conn network.IConn, content []byte)) {
