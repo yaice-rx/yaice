@@ -4,6 +4,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/json-iterator/go"
 	"github.com/satori/go.uuid"
+	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/router"
@@ -65,11 +66,16 @@ func (c *Conn) startReadThread() {
 func (c *Conn) startWriteThread() {
 	for {
 		select {
-		case data := <-c.sendQueue:
-			if _, err := c.conn.Write(data); err != nil {
-				//发送错误,将数据重新写入通道重新发送
-				c.sendQueue <- data
-				return
+		case data, state := <-c.sendQueue:
+			if state {
+				if _, err := c.conn.Write(data); err != nil {
+					//发送错误,将数据重新写入通道重新发送
+					c.sendQueue <- data
+					return
+				} else {
+					logrus.Error("send write error :", err.Error())
+					log.AppLogger.Error("send write error :"+err.Error(), zap.String("function", "network.tcp.conn.startWriteThread"))
+				}
 			}
 		}
 	}
@@ -98,13 +104,14 @@ func (c *Conn) Start() {
 	go func() {
 		for {
 			select {
-			case msg := <-c.receiveQueue:
-				router.RouterMgr.ExecRouterFunc(msg)
+			case msg, state := <-c.receiveQueue:
+				if state {
+					router.RouterMgr.ExecRouterFunc(msg)
+				}
 				break
-			case <-time.After(time.Second * 5):
+			case <-time.After(time.Second * 300):
 				//连接超时
 				ConnManagerMgr.Remove(c.guid)
-				c.Close()
 				break
 			}
 		}
@@ -121,5 +128,5 @@ func (c *Conn) UpdateTime() {
 
 func (c *Conn) Close() {
 	close(c.sendQueue)
-	close(c.sendQueue)
+	close(c.receiveQueue)
 }

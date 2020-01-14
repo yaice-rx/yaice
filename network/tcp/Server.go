@@ -6,7 +6,6 @@ import (
 	"net"
 	"strconv"
 	"sync"
-	"time"
 )
 
 type Server struct {
@@ -49,7 +48,6 @@ func (s *Server) Listen(startPort int, endPort int) int {
 				if ConnManagerMgr.Len() > 5000 {
 					tcpConn.Close()
 				} else {
-					tcpConn.SetReadDeadline(time.Now().Add(5 * time.Second))
 					conn := NewConn(tcpConn)
 					ConnManagerMgr.Add(conn)
 					conn.Start()
