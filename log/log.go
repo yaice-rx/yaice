@@ -12,8 +12,9 @@ func init() {
 	writer := zapcore.AddSync(&lumberjack.Logger{
 		Filename:   "logs/app.log",
 		MaxSize:    100,
-		MaxBackups: 3,
+		MaxBackups: 7,
 		MaxAge:     1,
+		Compress:   true,
 	})
 
 	encoderConfig := zapcore.EncoderConfig{
