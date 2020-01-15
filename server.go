@@ -76,7 +76,7 @@ func (s *server) GetNodeData(path string) []*config.Config {
  * @param 异步调用 func(回调事件，回调函数)
  */
 func (s *server) WatchNodeData(eventHandler func(eventType mvccpb.Event_EventType, config *config.Config)) {
-	s.clusterMgr.Watch(eventHandler)
+	go s.clusterMgr.Watch(eventHandler)
 }
 
 /**
