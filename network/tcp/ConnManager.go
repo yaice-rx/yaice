@@ -13,9 +13,11 @@ var ConnManagerMgr = _NewConnManager()
 
 // 初始化
 func _NewConnManager() network.IConnManager {
-	return &ConnManager{
+	manager := &ConnManager{
 		Connects: sync.Map{},
 	}
+	manager.Connects.SetCounter()
+	return manager
 }
 
 func (c *ConnManager) Add(conn network.IConn) {

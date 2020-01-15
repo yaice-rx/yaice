@@ -1,7 +1,6 @@
 package tcp
 
 import (
-	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/network"
 	"net"
 	"strconv"
@@ -28,16 +27,13 @@ func (s *Server) Listen(startPort int, endPort int) int {
 			tcpAddr, err := net.ResolveTCPAddr("tcp", ":"+strconv.Itoa(i))
 			if nil != err {
 				port <- -1
-				logrus.Debug("tcp resolve address :", i, " fail,error :", err)
 				return
 			}
 			listener, err := net.ListenTCP("tcp", tcpAddr)
 			if nil != err {
 				port <- -1
-				logrus.Debug("tcp listen port :", i, " fail,error :", err)
 				return
 			}
-			logrus.Debug("listen port", i)
 			port <- i
 			s.listener = listener
 			for {

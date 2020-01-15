@@ -5,10 +5,8 @@ import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/json-iterator/go"
-	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/log"
-	"go.uber.org/zap"
 	"sync"
 	"time"
 )
@@ -48,7 +46,7 @@ func (s *manager) Listen(endpoints []string) error {
 		DialTimeout: 5 * time.Second,
 	})
 	if nil != err {
-		log.AppLogger.Fatal("ETCD 服务启动错误："+err.Error(), zap.String("function", "cluster.manager.Listen"))
+		log.AppLogger.Debug("ETCD 服务启动错误：" + err.Error())
 		return nil
 	}
 	s.conn = conn
@@ -59,7 +57,7 @@ func (s *manager) Set(path string, data config.Config) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		logrus.Debug("ETCD 注册数据,序列化失败：", err.Error())
+		log.AppLogger.Debug("ETCD 注册数据,序列化失败：" + err.Error())
 		return err
 	}
 	s.Lock()
@@ -67,13 +65,13 @@ func (s *manager) Set(path string, data config.Config) error {
 	//保持连接的时间
 	keepErr := s.grantSetLeaseKeepAlive(ConnectTTL)
 	if nil != keepErr {
-		logrus.Debug("ETCD 设置租约续期时间失败：", err.Error())
+		log.AppLogger.Debug("ETCD 设置租约续期时间失败：" + err.Error())
 		return keepErr
 	}
 	//存储
 	_, err = s.conn.Put(context.TODO(), s.prefix+"\\"+path, string(jsonData), clientv3.WithLease(s.leaseRes.ID))
 	if err != nil {
-		logrus.Debug("ETCD 注册数据失败：", err.Error())
+		log.AppLogger.Debug("ETCD 注册数据失败：" + err.Error())
 		return err
 	}
 	go s.listenLease()
@@ -83,7 +81,7 @@ func (s *manager) Set(path string, data config.Config) error {
 func (s *manager) Get(path string) []*config.Config {
 	resp, err := s.conn.Get(context.TODO(), s.prefix+"\\"+path, clientv3.WithPrefix())
 	if err != nil {
-		log.AppLogger.Debug("数据获取失败："+err.Error(), zap.String("function", "cluster.manager.Get"))
+		log.AppLogger.Debug("数据获取失败：" + err.Error())
 		return nil
 	}
 	configMap := []*config.Config{}
@@ -91,7 +89,7 @@ func (s *manager) Get(path string) []*config.Config {
 		config := &config.Config{}
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal(value, config); err != nil {
-			log.AppLogger.Debug("序列化失败："+err.Error(), zap.String("function", "cluster.manager.Get"))
+			log.AppLogger.Debug("序列化失败：" + err.Error())
 			continue
 		}
 		configMap = append(configMap, config)

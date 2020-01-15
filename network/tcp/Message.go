@@ -3,12 +3,12 @@ package tcp
 import "github.com/yaice-rx/yaice/network"
 
 type Message struct {
-	ID   int
+	ID   int32
 	Conn network.IConn
 	Data []byte
 }
 
-func NewMessage(id int, data []byte, conn network.IConn) network.IMessage {
+func NewMessage(id int32, data []byte, conn network.IConn) network.IMessage {
 	return &Message{
 		ID:   id,
 		Data: data,
@@ -17,7 +17,7 @@ func NewMessage(id int, data []byte, conn network.IConn) network.IMessage {
 }
 
 //获取消息ID
-func (this *Message) GetMsgId() int {
+func (this *Message) GetMsgId() int32 {
 	return this.ID
 }
 

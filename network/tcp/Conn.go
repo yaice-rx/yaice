@@ -4,12 +4,10 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/json-iterator/go"
 	"github.com/satori/go.uuid"
-	"github.com/sirupsen/logrus"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/router"
 	"github.com/yaice-rx/yaice/utils"
-	"go.uber.org/zap"
 	"net"
 	"time"
 )
@@ -41,7 +39,7 @@ func (c *Conn) startReadThread() {
 	tempBuff := make([]byte, 0)
 	readBuff := make([]byte, 1024)
 	data := make([]byte, 1024)
-	msgId := 0
+	msgId := int32(0)
 	for {
 		//read
 		n, e := c.conn.Read(readBuff)
@@ -54,9 +52,7 @@ func (c *Conn) startReadThread() {
 		tempBuff = append(tempBuff, readBuff[:n]...)
 		tempBuff, data, msgId, errs = dataPack.Unpack(tempBuff)
 		if errs != nil {
-			continue
-		}
-		if len(data) == 0 {
+			log.AppLogger.Error("接收消息时候，解压数据包错误 :" + errs.Error())
 			continue
 		}
 		c.receiveQueue <- NewMessage(msgId, data, c)
@@ -68,13 +64,12 @@ func (c *Conn) startWriteThread() {
 		select {
 		case data, state := <-c.sendQueue:
 			if state {
-				if _, err := c.conn.Write(data); err != nil {
+				_, err := c.conn.Write(data)
+				if err != nil {
 					//发送错误,将数据重新写入通道重新发送
+					log.AppLogger.Fatal("发送消息失败 ，发送人： " + c.guid + ",错误提示：" + err.Error())
 					c.sendQueue <- data
 					return
-				} else {
-					logrus.Error("send write error :", err.Error())
-					log.AppLogger.Error("send write error :"+err.Error(), zap.String("function", "network.tcp.conn.startWriteThread"))
 				}
 			}
 		}
@@ -85,7 +80,7 @@ func (c *Conn) Send(message proto.Message) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
 	data, err := json.Marshal(message)
 	if err != nil {
-		log.AppLogger.Fatal(err.Error(), zap.String("function", "Send"))
+		log.AppLogger.Fatal("发送消息时，序列化失败 : " + err.Error())
 		return err
 	}
 	protoNumber := utils.ProtocalNumber(utils.GetProtoName(message))
