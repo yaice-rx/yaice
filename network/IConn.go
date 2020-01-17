@@ -9,4 +9,5 @@ type IConn interface {
 	GetTimes() int64
 	UpdateTime()
 	Send(message proto.Message) error
+	SetData(data interface{})
 }
