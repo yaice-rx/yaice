@@ -92,7 +92,7 @@ func (s *server) ListenTCP(startPort int, endPort int) int {
  * @param address 地址
  */
 func (s *server) DialTCP(address string) network.IConn {
-	return tcp.TCPClientMgr.Connect(address)
+	return tcp.TCPClientMgr.Connect(address, tcp.WithMax(3))
 }
 
 /**
@@ -100,7 +100,7 @@ func (s *server) DialTCP(address string) network.IConn {
  * @param address 地址
  */
 func (s *server) DialKCP(address string) network.IConn {
-	return tcp.TCPClientMgr.Connect(address)
+	return tcp.TCPClientMgr.Connect(address, tcp.WithMax(3))
 }
 
 /**
