@@ -5,6 +5,7 @@ import (
 	"github.com/yaice-rx/yaice/network"
 	"go.uber.org/zap"
 	"net"
+	"sync/atomic"
 )
 
 type TCPClient struct {
@@ -18,17 +19,21 @@ func _NewTCPClient() network.IClient {
 }
 
 type Options struct {
-	max uint
+	max uint32
 }
 
-func WithMax(maxRetries uint) network.IOptions {
+func WithMax(maxRetries uint32) network.IOptions {
 	return &Options{
 		max: maxRetries,
 	}
 }
 
-func (o *Options) GetMax() uint {
+func (o *Options) GetMax() uint32 {
 	return o.max
+}
+
+func (o *Options) SetMax() {
+	atomic.AddUint32(&o.max, 1)
 }
 
 func (c *TCPClient) Connect(address string, opt network.IOptions) network.IConn {
@@ -40,9 +45,12 @@ func (c *TCPClient) Connect(address string, opt network.IOptions) network.IConn 
 LOOP:
 	c.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
+		if opt.GetMax() > 3 {
+			log.AppLogger.Error("网络重连失败:"+err.Error(), zap.String("function", "network.tcp.Client.Connect"))
+			return nil
+		}
+		opt.SetMax()
 		goto LOOP
-		log.AppLogger.Error("网络连接失败:"+err.Error(), zap.String("function", "network.tcp.Client.Connect"))
-		return nil
 	}
 	conn := NewConn(c.conn)
 	//加入到连接列表中

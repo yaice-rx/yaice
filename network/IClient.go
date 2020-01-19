@@ -1,7 +1,8 @@
 package network
 
 type IOptions interface {
-	GetMax() uint
+	GetMax() uint32
+	SetMax()
 }
 
 type IClient interface {
