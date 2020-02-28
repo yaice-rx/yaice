@@ -157,5 +157,6 @@ func (s *manager) listenLease() {
 
 //关闭
 func (s *manager) Close() {
-	s.conn.Close()
+	defer s.conn.Close()
+	return
 }

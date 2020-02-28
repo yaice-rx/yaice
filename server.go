@@ -16,13 +16,11 @@ var shutdown = make(chan bool, 1)
 
 type IServer interface {
 	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
-	RegisterNodeData(config config.Config) error
-	GetNodeData(path string) []*config.Config
-	WatchNodeData(eventHandler func(isAdd mvccpb.Event_EventType, config *config.Config))
-	ListenTCP(startPort int, endPort int) int
-	ListenKCP(startPort int, endPort int) int
-	DialTCP(address string) network.IConn
-	DialKCP(address string) network.IConn
+	RegisterServeNodeData(config config.Config) error
+	GetServeNodeData(path string) []*config.Config
+	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, config *config.Config))
+	Listen(network string, startPort int, endPort int) int
+	Dial(network string, address string) network.IConn
 	Close()
 }
 
@@ -44,6 +42,7 @@ func NewServer(endpoints []string) IServer {
 		config:     config.Config{},
 		connEtcds:  endpoints,
 	}
+	//启动集群服务
 	server.clusterMgr.Listen(server.connEtcds)
 	return server
 }
@@ -59,7 +58,7 @@ func (s *server) AddRouter(message proto.Message, handler func(conn network.ICon
 /**
  * @param config 服务参数配置
  */
-func (s *server) RegisterNodeData(config config.Config) error {
+func (s *server) RegisterServeNodeData(config config.Config) error {
 	return s.clusterMgr.Set(config.ServerGroup+"\\"+config.TypeId+"\\"+strconv.Itoa(config.Pid), config)
 }
 
@@ -67,7 +66,7 @@ func (s *server) RegisterNodeData(config config.Config) error {
  * @param path 获取服务的路径
  * @return 返回多个服务配置
  */
-func (s *server) GetNodeData(path string) []*config.Config {
+func (s *server) GetServeNodeData(path string) []*config.Config {
 	return s.clusterMgr.Get(path)
 }
 
@@ -75,48 +74,38 @@ func (s *server) GetNodeData(path string) []*config.Config {
  * @func  监听来自集群服务的通知
  * @param 异步调用 func(回调事件，回调函数)
  */
-func (s *server) WatchNodeData(eventHandler func(eventType mvccpb.Event_EventType, config *config.Config)) {
+func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_EventType, config *config.Config)) {
 	go s.clusterMgr.Watch(eventHandler)
 }
 
 /**
- * @func  监听端口
- * @param startPort 监听端口范围开始，endPort 监听端口范围结束
- */
-func (s *server) ListenTCP(startPort int, endPort int) int {
-	return tcp.ServerMgr.Listen(startPort, endPort)
-}
-
-/**
  * 连接网络
- * @param address 地址
+ * @param network 网络连接方式,address 地址
  */
-func (s *server) DialTCP(address string) network.IConn {
-	return tcp.TCPClientMgr.Connect(address, tcp.WithMax(3))
-}
-
-/**
- * 连接网络
- * @param address 地址
- */
-func (s *server) DialKCP(address string) network.IConn {
-	return tcp.TCPClientMgr.Connect(address, tcp.WithMax(3))
-}
-
-/**
- * @func  监听端口
- * @param startPort 监听端口范围开始，endPort 监听端口范围结束
- */
-func (s *server) ListenKCP(startPort int, endPort int) int {
-	return tcp.ServerMgr.Listen(startPort, endPort)
+func (s *server) Dial(network string, address string) network.IConn {
+	switch network {
+	case "kcp":
+		break
+	case "tcp", "tcp4", "tcp6":
+		return tcp.TCPClientMgr.Connect(address, tcp.WithMax(3))
+		break
+	}
+	return nil
 }
 
 /**
  * @func  监听端口
- * @param startPort 监听端口范围开始，endPort 监听端口范围结束
+ * @param network 网络连接方式,startPort 监听端口范围开始，endPort 监听端口范围结束
  */
-func (s *server) ListenKcp(startPort int, endPort int) int {
-	return -1
+func (s *server) Listen(network string, startPort int, endPort int) int {
+	switch network {
+	case "kcp":
+		break
+	case "tcp", "tcp4", "tcp6":
+		return tcp.ServerMgr.Listen(startPort, endPort)
+		break
+	}
+	return 0
 }
 
 /**
