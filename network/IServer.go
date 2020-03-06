@@ -1,5 +1,5 @@
 package network
 
 type IServer interface {
-	Listen(startPort int, endPort int) int
+	Listen(packet IPacket, startPort int, endPort int) int
 }

@@ -36,7 +36,7 @@ func (o *Options) SetMax() {
 	atomic.AddUint32(&o.max, 1)
 }
 
-func (c *TCPClient) Connect(address string, opt network.IOptions) network.IConn {
+func (c *TCPClient) Connect(packet network.IPacket, address string, opt network.IOptions) network.IConn {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
 		log.AppLogger.Error("网络地址序列化失败:"+err.Error(), zap.String("function", "network.tcp.Client.Connect"))
@@ -52,7 +52,7 @@ LOOP:
 		opt.SetMax()
 		goto LOOP
 	}
-	conn := NewConn(c.conn)
+	conn := NewConn(c.conn, packet)
 	//加入到连接列表中
 	ConnManagerMgr.Add(conn)
 	//读取网络通道数据

@@ -19,7 +19,7 @@ func _NewServer() network.IServer {
 	return &Server{}
 }
 
-func (s *Server) Listen(startPort int, endPort int) int {
+func (s *Server) Listen(packet network.IPacket, startPort int, endPort int) int {
 	port := make(chan int)
 	defer close(port)
 	for i := startPort; i < endPort; i++ {
@@ -44,7 +44,7 @@ func (s *Server) Listen(startPort int, endPort int) int {
 				if ConnManagerMgr.Len() > 5000 {
 					tcpConn.Close()
 				} else {
-					conn := NewConn(tcpConn)
+					conn := NewConn(tcpConn, packet)
 					ConnManagerMgr.Add(conn)
 					conn.Start()
 				}

@@ -15,6 +15,7 @@ import (
 
 type Conn struct {
 	guid         string
+	pkg          network.IPacket
 	conn         *net.TCPConn
 	receiveQueue chan network.IMessage
 	sendQueue    chan network.IMessage
@@ -23,10 +24,11 @@ type Conn struct {
 	data         interface{}
 }
 
-func NewConn(conn *net.TCPConn) network.IConn {
+func NewConn(conn *net.TCPConn, pkg network.IPacket) network.IConn {
 	return &Conn{
 		guid:         uuid.NewV4().String(),
 		conn:         conn,
+		pkg:          pkg,
 		receiveQueue: make(chan network.IMessage, 10),
 		sendQueue:    make(chan network.IMessage, 10),
 		stopChan:     make(chan bool),
@@ -54,9 +56,8 @@ func (c *Conn) readThread() {
 		}
 		c.UpdateTime()
 		//写入接收消息队列中
-		dataPack := NewPacket()
 		tempBuff = append(tempBuff, readBuff[:n]...)
-		tempBuff, data, msgId, errs = dataPack.Unpack(tempBuff)
+		tempBuff, data, msgId, errs = c.pkg.Unpack(tempBuff)
 		if errs != nil {
 			//数据验证不过关，关闭该连接句柄
 			log.AppLogger.Error("接收消息时候，解压数据包错误 :" + errs.Error())
@@ -73,8 +74,7 @@ func (c *Conn) writeThread() {
 		select {
 		case data, state := <-c.sendQueue:
 			if state {
-				dataPack := NewPacket()
-				_, err := c.conn.Write(dataPack.Pack(data))
+				_, err := c.conn.Write(c.pkg.Pack(data))
 				if err != nil {
 					//首先判断 发送多次，依然不能连接服务器，就此直接断开
 					if data.GetCount() > 3 {
@@ -113,13 +113,6 @@ func (c *Conn) GetGuid() string {
 }
 
 func (c *Conn) Start() {
-	defer func() {
-		//退出读取协程，从Conn列表中移除
-		ConnManagerMgr.Remove(c.guid)
-		c.conn.Close()
-		close(c.sendQueue)
-		close(c.receiveQueue)
-	}()
 	go c.readThread()
 	go c.writeThread()
 	go func() {

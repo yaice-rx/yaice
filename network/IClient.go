@@ -6,6 +6,6 @@ type IOptions interface {
 }
 
 type IClient interface {
-	Connect(address string, opt IOptions) IConn
+	Connect(packet IPacket, address string, opt IOptions) IConn
 	Close()
 }

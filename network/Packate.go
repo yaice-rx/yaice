@@ -1,8 +1,7 @@
-package tcp
+package network
 
 import (
 	"errors"
-	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/utils"
 )
 
@@ -14,27 +13,27 @@ const (
 
 const Header = "yaice$#"
 
-type Packet struct {
+type packet struct {
 }
 
-func NewPacket() network.IPacket {
-	return &Packet{}
+type IPacket interface {
+	Pack(msg IMessage) []byte
+	Unpack(buff []byte) ([]byte, []byte, int32, error)
 }
 
-//获取包头长度方法
-func (dp *Packet) GetHeadLen() int {
-	return ConstMsgIdLength + ConstHeaderLength
+func NewPacket() IPacket {
+	return &packet{}
 }
 
 //封包
-func (dp *Packet) Pack(msg network.IMessage) []byte {
+func (dp *packet) Pack(msg IMessage) []byte {
 	data := msg.GetData()
 	msgLength := int32(len(data))
 	return append(append(append([]byte(Header), utils.IntToBytes(msg.GetMsgId())...), utils.IntToBytes(msgLength)...), data...)
 }
 
 //解包
-func (dp *Packet) Unpack(buff []byte) ([]byte, []byte, int32, error) {
+func (dp *packet) Unpack(buff []byte) ([]byte, []byte, int32, error) {
 	length := len(buff)
 	//如果包长小于header 就直接返回 因为接收的数据不完整
 	if length < ConstMsgIdLength+ConstHeaderLength+ConstMsgLength {

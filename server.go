@@ -1,6 +1,7 @@
 package yaice
 
 import (
+	"context"
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/cluster"
@@ -19,12 +20,13 @@ type IServer interface {
 	RegisterServeNodeData(config config.Config) error
 	GetServeNodeData(path string) []*config.Config
 	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, config *config.Config))
-	Listen(network string, startPort int, endPort int) int
-	Dial(network string, address string) network.IConn
+	Listen(packet network.IPacket, network string, startPort int, endPort int) int
+	Dial(packet network.IPacket, network string, address string) network.IConn
 	Close()
 }
 
 type server struct {
+	cancel       context.CancelFunc
 	routerMgr    router.IRouter
 	clusterMgr   cluster.IManager
 	config       config.Config
@@ -82,12 +84,15 @@ func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_Eve
  * 连接网络
  * @param network 网络连接方式,address 地址
  */
-func (s *server) Dial(network string, address string) network.IConn {
-	switch network {
+func (s *server) Dial(packet network.IPacket, network_ string, address string) network.IConn {
+	if packet == nil {
+		packet = network.NewPacket()
+	}
+	switch network_ {
 	case "kcp":
 		break
 	case "tcp", "tcp4", "tcp6":
-		return tcp.TCPClientMgr.Connect(address, tcp.WithMax(3))
+		return tcp.TCPClientMgr.Connect(packet, address, tcp.WithMax(3))
 		break
 	}
 	return nil
@@ -97,12 +102,15 @@ func (s *server) Dial(network string, address string) network.IConn {
  * @func  监听端口
  * @param network 网络连接方式,startPort 监听端口范围开始，endPort 监听端口范围结束
  */
-func (s *server) Listen(network string, startPort int, endPort int) int {
-	switch network {
+func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int) int {
+	if packet == nil {
+		packet = network.NewPacket()
+	}
+	switch network_ {
 	case "kcp":
 		break
 	case "tcp", "tcp4", "tcp6":
-		return tcp.ServerMgr.Listen(startPort, endPort)
+		return tcp.ServerMgr.Listen(packet, startPort, endPort)
 		break
 	}
 	return 0
