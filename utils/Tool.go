@@ -25,10 +25,34 @@ func IntToBytes(n int32) []byte {
 	return bytesBuffer.Bytes()
 }
 
+//整形转换成字节
+func LongToBytes(n int64) []byte {
+	x := n
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	binary.Write(bytesBuffer, binary.BigEndian, x)
+	return bytesBuffer.Bytes()
+}
+
+//整形转换成字节
+func ShortToBytes(n int16) []byte {
+	x := n
+	bytesBuffer := bytes.NewBuffer([]byte{})
+	binary.Write(bytesBuffer, binary.BigEndian, x)
+	return bytesBuffer.Bytes()
+}
+
 //字节转换成整形
 func BytesToInt(b []byte) int32 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var x int32
+	binary.Read(bytesBuffer, binary.BigEndian, &x)
+	return x
+}
+
+//字节转换成整形
+func BytesToLong(b []byte) int64 {
+	bytesBuffer := bytes.NewBuffer(b)
+	var x int64
 	binary.Read(bytesBuffer, binary.BigEndian, &x)
 	return x
 }

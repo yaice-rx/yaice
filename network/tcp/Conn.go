@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"github.com/golang/protobuf/proto"
-	"github.com/json-iterator/go"
 	"github.com/satori/go.uuid"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
@@ -18,7 +17,7 @@ type Conn struct {
 	pkg          network.IPacket
 	conn         *net.TCPConn
 	receiveQueue chan network.IMessage
-	sendQueue    chan network.IMessage
+	sendQueue    chan []byte
 	stopChan     chan bool
 	times        int64
 	data         interface{}
@@ -30,7 +29,7 @@ func NewConn(conn *net.TCPConn, pkg network.IPacket) network.IConn {
 		conn:         conn,
 		pkg:          pkg,
 		receiveQueue: make(chan network.IMessage, 10),
-		sendQueue:    make(chan network.IMessage, 10),
+		sendQueue:    make(chan []byte, 10),
 		stopChan:     make(chan bool),
 		times:        time.Now().Unix(),
 	}
@@ -68,37 +67,33 @@ func (c *Conn) writeThread() {
 		select {
 		case data, state := <-c.sendQueue:
 			if state {
-				_, err := c.conn.Write(c.pkg.Pack(data))
+				_, err := c.conn.Write(data)
 				if err != nil {
 					//首先判断 发送多次，依然不能连接服务器，就此直接断开
-					if data.GetCount() > 3 {
-						c.Close()
-						return
-					} else {
-						//发送错误,将数据重新写入通道重新发送
-						log.AppLogger.Error("发送消息失败 ，发送人： "+c.guid+",错误提示："+err.Error(), zap.Int32("MessageId", data.GetMsgId()))
-						data.AddCount()
-						c.sendQueue <- data
-						break
-					}
+					//todo
 				}
 			} else {
-				log.AppLogger.Error("发送消息失败 ，发送人： "+c.guid+",通道已关闭", zap.Int32("MessageId", data.GetMsgId()))
-				return
+				//todo  读取数据出错
 			}
 		}
 	}
 }
 
+//发送协议体
 func (c *Conn) Send(message proto.Message) error {
-	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	data, err := json.Marshal(message)
+	data, err := proto.Marshal(message)
 	protoId := utils.ProtocalNumber(utils.GetProtoName(message))
 	if err != nil {
 		log.AppLogger.Error("发送消息时，序列化失败 : "+err.Error(), zap.Int32("MessageId", protoId))
 		return err
 	}
-	c.sendQueue <- NewMessage(protoId, data, c)
+	c.sendQueue <- c.pkg.Pack(NewMessage(protoId, data, c))
+	return nil
+}
+
+//发送组装好的协议，但是加密始终是在组装包的时候完成加密功能
+func (c *Conn) SendByte(message []byte) error {
+	c.sendQueue <- message
 	return nil
 }
 
@@ -121,8 +116,7 @@ func (c *Conn) Start() {
 			//关闭Conn连接
 			case data := <-c.stopChan:
 				if data {
-					//关闭通道
-					return
+					//todo
 				}
 				break
 			}
