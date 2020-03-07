@@ -43,15 +43,10 @@ func (c *Conn) readThread() {
 	data := make([]byte, 1024)
 	msgId := int32(0)
 	for {
-		//判定连接句柄是否否关闭
-		if <-c.stopChan {
-			return
-		}
 		//开启从网络中读取数据
 		n, e := c.conn.Read(readBuff)
 		if e != nil {
 			//网络数据读取失败，关闭该连接句柄
-			c.stopChan <- true
 			continue
 		}
 		c.UpdateTime()
@@ -61,7 +56,6 @@ func (c *Conn) readThread() {
 		if errs != nil {
 			//数据验证不过关，关闭该连接句柄
 			log.AppLogger.Error("接收消息时候，解压数据包错误 :" + errs.Error())
-			c.stopChan <- true
 			continue
 		}
 		//写入通道数据
@@ -137,8 +131,6 @@ func (c *Conn) Start() {
 }
 
 func (c *Conn) Close() {
-	//关闭读取写入通道
-	c.stopChan <- true
 }
 
 func (c *Conn) GetTimes() int64 {
