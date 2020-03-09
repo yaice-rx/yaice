@@ -17,7 +17,7 @@ import (
 
 var mutex sync.Mutex
 
-//整形转换成字节
+//int32转换成字节
 func IntToBytes(n int32) []byte {
 	x := n
 	bytesBuffer := bytes.NewBuffer([]byte{})
@@ -25,7 +25,7 @@ func IntToBytes(n int32) []byte {
 	return bytesBuffer.Bytes()
 }
 
-//整形转换成字节
+//long转换成字节
 func LongToBytes(n int64) []byte {
 	x := n
 	bytesBuffer := bytes.NewBuffer([]byte{})
@@ -33,7 +33,7 @@ func LongToBytes(n int64) []byte {
 	return bytesBuffer.Bytes()
 }
 
-//整形转换成字节
+//short转换成字节
 func ShortToBytes(n int16) []byte {
 	x := n
 	bytesBuffer := bytes.NewBuffer([]byte{})
@@ -41,7 +41,7 @@ func ShortToBytes(n int16) []byte {
 	return bytesBuffer.Bytes()
 }
 
-//字节转换成整形
+//字节转换成int
 func BytesToInt(b []byte) int32 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var x int32
@@ -49,10 +49,18 @@ func BytesToInt(b []byte) int32 {
 	return x
 }
 
-//字节转换成整形
+//字节转换成long
 func BytesToLong(b []byte) int64 {
 	bytesBuffer := bytes.NewBuffer(b)
 	var x int64
+	binary.Read(bytesBuffer, binary.BigEndian, &x)
+	return x
+}
+
+//字节转换成long
+func BytesToShort(b []byte) int8 {
+	bytesBuffer := bytes.NewBuffer(b)
+	var x int8
 	binary.Read(bytesBuffer, binary.BigEndian, &x)
 	return x
 }
