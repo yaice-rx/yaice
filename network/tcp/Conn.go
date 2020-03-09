@@ -87,7 +87,7 @@ func (c *Conn) Send(message proto.Message) error {
 		log.AppLogger.Error("发送消息时，序列化失败 : "+err.Error(), zap.Int32("MessageId", protoId))
 		return err
 	}
-	c.sendQueue <- c.pkg.Pack(NewMessage(protoId, data, c))
+	c.sendQueue <- c.pkg.Pack(NewMessage(protoId, data))
 	return nil
 }
 
@@ -110,7 +110,7 @@ func (c *Conn) Start() {
 			//读取网络数据
 			case data := <-c.receiveQueue:
 				if data != nil {
-					router.RouterMgr.ExecRouterFunc(data)
+					router.RouterMgr.ExecRouterFunc(c, data)
 				}
 				break
 			//关闭Conn连接

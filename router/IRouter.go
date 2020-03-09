@@ -7,5 +7,5 @@ import (
 
 type IRouter interface {
 	AddRouter(msgObj proto.Message, handler func(conn network.IConn, content []byte))
-	ExecRouterFunc(message network.IMessage)
+	ExecRouterFunc(conn network.IConn, message network.IMessage)
 }
