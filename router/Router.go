@@ -28,11 +28,11 @@ func (r *router) AddRouter(msgObj proto.Message, handler func(conn network.IConn
 	r.routers[protocolNum] = handler
 }
 
-func (r *router) ExecRouterFunc(conn network.IConn, message network.IMessage) {
+func (r *router) ExecRouterFunc(conn network.IConn, message network.TransitData) {
 	r.Lock()
 	defer r.Unlock()
-	handler := r.routers[message.GetMsgId()]
+	handler := r.routers[message.MsgId]
 	if handler != nil {
-		handler(conn, message.GetData())
+		handler(conn, message.Data)
 	}
 }

@@ -86,7 +86,7 @@ func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_Eve
  */
 func (s *server) Dial(packet network.IPacket, network_ string, address string) network.IConn {
 	if packet == nil {
-		packet = network.NewPacket()
+		packet = tcp.NewPacket()
 	}
 	switch network_ {
 	case "kcp":
@@ -104,7 +104,7 @@ func (s *server) Dial(packet network.IPacket, network_ string, address string) n
  */
 func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int) int {
 	if packet == nil {
-		packet = network.NewPacket()
+		packet = tcp.NewPacket()
 	}
 	switch network_ {
 	case "kcp":

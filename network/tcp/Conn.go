@@ -1,6 +1,9 @@
 package tcp
 
 import (
+	"bytes"
+	"encoding/binary"
+	"fmt"
 	"github.com/golang/protobuf/proto"
 	"github.com/satori/go.uuid"
 	"github.com/yaice-rx/yaice/log"
@@ -8,6 +11,7 @@ import (
 	"github.com/yaice-rx/yaice/router"
 	"github.com/yaice-rx/yaice/utils"
 	"go.uber.org/zap"
+	"io"
 	"net"
 	"time"
 )
@@ -16,7 +20,7 @@ type Conn struct {
 	guid         string
 	pkg          network.IPacket
 	conn         *net.TCPConn
-	receiveQueue chan network.IMessage
+	receiveQueue chan network.TransitData
 	sendQueue    chan []byte
 	stopChan     chan bool
 	times        int64
@@ -28,37 +32,51 @@ func NewConn(conn *net.TCPConn, pkg network.IPacket) network.IConn {
 		guid:         uuid.NewV4().String(),
 		conn:         conn,
 		pkg:          pkg,
-		receiveQueue: make(chan network.IMessage, 10),
-		sendQueue:    make(chan []byte, 10),
+		receiveQueue: make(chan network.TransitData),
+		sendQueue:    make(chan []byte),
 		stopChan:     make(chan bool),
 		times:        time.Now().Unix(),
 	}
 }
 
+type headerMsg struct {
+	DataLen uint32
+}
+
 func (c *Conn) readThread() {
-	var errs error
-	tempBuff := make([]byte, 0)
-	readBuff := make([]byte, 1024)
-	data := make([]byte, 1024)
-	msgId := int32(0)
 	for {
-		//开启从网络中读取数据
-		n, e := c.conn.Read(readBuff)
-		if e != nil {
-			//网络数据读取失败，关闭该连接句柄
-			continue
+		//1 先读出流中的head部分
+		headData := make([]byte, c.pkg.GetHeadLen())
+		_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
+		if err != nil {
+			fmt.Println("read head error")
+			break
 		}
-		c.UpdateTime()
-		//写入接收消息队列中
-		tempBuff = append(tempBuff, readBuff[:n]...)
-		tempBuff, data, msgId, errs = c.pkg.Unpack(tempBuff)
-		if errs != nil {
-			//数据验证不过关，关闭该连接句柄
-			log.AppLogger.Error("接收消息时候，解压数据包错误 :" + errs.Error())
-			continue
+		//强制规定网络数据包头4位必须是网络的长度
+		//创建一个从输入二进制数据的ioReader
+		headerBuff := bytes.NewReader(headData)
+		msg := &headerMsg{}
+		if err := binary.Read(headerBuff, binary.BigEndian, &msg.DataLen); err != nil {
+			fmt.Println("server unpack err:", err)
+			return
 		}
-		//写入通道数据
-		c.receiveQueue <- NewMessage(msgId, data)
+		if msg.DataLen > 0 {
+			//msg 是有data数据的，需要再次读取data数据
+			contentData := make([]byte, msg.DataLen)
+			//根据dataLen从io中读取字节流
+			_, err := io.ReadFull(c.conn, contentData)
+			if err != nil {
+				fmt.Println("server unpack data err:", err)
+				return
+			}
+			//解压网络数据包
+			msgData, err := c.pkg.Unpack(contentData)
+			//写入通道数据
+			c.receiveQueue <- network.TransitData{
+				MsgId: msgData.GetMsgId(),
+				Data:  contentData,
+			}
+		}
 	}
 }
 
@@ -87,7 +105,7 @@ func (c *Conn) Send(message proto.Message) error {
 		log.AppLogger.Error("发送消息时，序列化失败 : "+err.Error(), zap.Int32("MessageId", protoId))
 		return err
 	}
-	c.sendQueue <- c.pkg.Pack(NewMessage(protoId, data))
+	c.sendQueue <- c.pkg.Pack(network.TransitData{protoId, data})
 	return nil
 }
 
@@ -137,4 +155,8 @@ func (c *Conn) UpdateTime() {
 
 func (c *Conn) SetData(data interface{}) {
 	c.data = data
+}
+
+func (c *Conn) GetConn() interface{} {
+	return c.conn
 }

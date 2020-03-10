@@ -11,4 +11,5 @@ type IConn interface {
 	Send(message proto.Message) error
 	SendByte(message []byte) error
 	SetData(data interface{})
+	GetConn() interface{}
 }
