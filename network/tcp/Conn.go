@@ -58,7 +58,7 @@ func (c *Conn) readThread() {
 			continue
 		}
 		//写入通道数据
-		c.receiveQueue <- NewMessage(msgId, data, c)
+		c.receiveQueue <- NewMessage(msgId, data)
 	}
 }
 
