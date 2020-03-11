@@ -1,10 +1,9 @@
 package tcp
 
 type Message struct {
-	ID   int32
-	Data []byte
+	ID    int32
+	Data  []byte
 }
-
 //获取消息ID
 func (this *Message) GetMsgId() int32 {
 	return this.ID

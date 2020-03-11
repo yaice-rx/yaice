@@ -58,7 +58,7 @@ func (c *Conn) readThread() {
 		msg := &headerMsg{}
 		if err := binary.Read(headerBuff, binary.BigEndian, &msg.DataLen); err != nil {
 			fmt.Println("server unpack err:", err)
-			return
+			break
 		}
 		if msg.DataLen > 0 {
 			//msg 是有data数据的，需要再次读取data数据
@@ -67,14 +67,14 @@ func (c *Conn) readThread() {
 			_, err := io.ReadFull(c.conn, contentData)
 			if err != nil {
 				fmt.Println("server unpack data err:", err)
-				return
+				break
 			}
 			//解压网络数据包
-			msgData, err := c.pkg.Unpack(contentData)
+			msgData,err :=  c.pkg.Unpack(contentData)
 			//写入通道数据
 			c.receiveQueue <- network.TransitData{
 				MsgId: msgData.GetMsgId(),
-				Data:  contentData,
+				Data:  msgData.GetData(),
 			}
 		}
 	}
@@ -127,7 +127,7 @@ func (c *Conn) Start() {
 			select {
 			//读取网络数据
 			case data := <-c.receiveQueue:
-				if data.MsgId != 0 {
+				if data.MsgId != 0  {
 					router.RouterMgr.ExecRouterFunc(c, data)
 				}
 				break
@@ -157,6 +157,7 @@ func (c *Conn) SetData(data interface{}) {
 	c.data = data
 }
 
-func (c *Conn) GetConn() interface{} {
+
+func (c *Conn)GetConn()interface{}{
 	return c.conn
 }

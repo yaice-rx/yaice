@@ -5,3 +5,4 @@ type IPacket interface {
 	Pack(TransitData) []byte
 	Unpack(binaryData []byte) (IMessage, error)
 }
+
