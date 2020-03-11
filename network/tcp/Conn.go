@@ -127,7 +127,7 @@ func (c *Conn) Start() {
 			select {
 			//读取网络数据
 			case data := <-c.receiveQueue:
-				if data != nil {
+				if data.MsgId != 0 {
 					router.RouterMgr.ExecRouterFunc(c, data)
 				}
 				break
