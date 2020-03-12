@@ -88,11 +88,13 @@ func (s *server) Dial(packet network.IPacket, network_ string, address string) n
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
+
 	switch network_ {
 	case "kcp":
 		break
 	case "tcp", "tcp4", "tcp6":
-		return tcp.TCPClientMgr.Connect(packet, address, tcp.WithMax(3))
+		clientMgr := tcp.NewClient(packet, address, tcp.WithMax(10))
+		return clientMgr.Connect()
 		break
 	}
 	return nil

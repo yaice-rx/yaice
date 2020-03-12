@@ -6,10 +6,7 @@ type IConn interface {
 	Start()
 	GetGuid() string
 	Close()
-	GetTimes() int64
-	UpdateTime()
 	Send(message proto.Message) error
 	SendByte(message []byte) error
-	SetData(data interface{})
-	GetConn()interface{}
+	GetConn() interface{}
 }

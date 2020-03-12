@@ -13,38 +13,30 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net"
-	"sync/atomic"
 	"time"
 )
 
 type Conn struct {
+	serve        interface{}
 	guid         string
 	pkg          network.IPacket
 	conn         *net.TCPConn
 	receiveQueue chan network.TransitData
 	sendQueue    chan []byte
-	stopChan     chan bool
 	isClosed     bool
 	times        int64
-	reconnCount  uint32
-	reconnTime   int64
 	data         interface{}
 }
 
-const TOKEN_CHECK_MAX_TRY_NUM = 60
-const TOKEN_CHECK_MAX_WAIT_TIME = 5
-
-func NewConn(conn *net.TCPConn, pkg network.IPacket) network.IConn {
+func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.IConn {
 	return &Conn{
+		serve:        serve,
 		guid:         uuid.NewV4().String(),
 		conn:         conn,
 		pkg:          pkg,
 		isClosed:     false,
 		receiveQueue: make(chan network.TransitData, 10),
 		sendQueue:    make(chan []byte, 10),
-		stopChan:     make(chan bool),
-		reconnCount:  0,
-		reconnTime:   0,
 		times:        time.Now().Unix(),
 	}
 }
@@ -53,70 +45,40 @@ type headerMsg struct {
 	DataLen uint32
 }
 
-func (c *Conn) readThread() {
-	for {
-		//1 先读出流中的head部分
-		headData := make([]byte, c.pkg.GetHeadLen())
-		_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
-		if err != nil {
-			log.AppLogger.Debug("network io read data err:" + err.Error())
-			break
-		}
-		//强制规定网络数据包头4位必须是网络的长度
-		//创建一个从输入二进制数据的ioReader
-		headerBuff := bytes.NewReader(headData)
-		msg := &headerMsg{}
-		if err := binary.Read(headerBuff, binary.BigEndian, &msg.DataLen); err != nil {
-			log.AppLogger.Debug("server unpack err:" + err.Error())
-			break
-		}
-		if msg.DataLen > 0 {
-			//msg 是有data数据的，需要再次读取data数据
-			contentData := make([]byte, msg.DataLen)
-			//根据dataLen从io中读取字节流
-			_, err := io.ReadFull(c.conn, contentData)
-			if err != nil {
-				log.AppLogger.Debug("network io read data err:" + err.Error())
-				break
-			}
-			//解压网络数据包
-			msgData, err := c.pkg.Unpack(contentData)
-			//写入通道数据
-			c.receiveQueue <- network.TransitData{
-				MsgId: msgData.GetMsgId(),
-				Data:  msgData.GetData(),
-			}
-		}
-	}
-}
-
-func (c *Conn) writeThread() {
-	for {
-		select {
-		case data, state := <-c.sendQueue:
-			if state {
-			LOOP:
-				_, err := c.conn.Write(data)
-				if err != nil {
-					time.Sleep(800 * time.Microsecond)
-					if atomic.LoadUint32(&c.reconnCount) >= TOKEN_CHECK_MAX_TRY_NUM {
-						log.AppLogger.Info("reconnect faild")
-						atomic.SwapUint32(&c.reconnCount, 0)
-						c.Close()
-					} else {
-						log.AppLogger.Info("reconnecting ...")
-						atomic.AddUint32(&c.reconnCount, 1)
-						goto LOOP
-					}
-				} else {
-					log.AppLogger.Info("reconnect  success ...")
-					//连通后，重置为0
-					atomic.SwapUint32(&c.reconnCount, 0)
+func (c *Conn) Start() {
+	go c.ReadThread()
+	go c.WriteThread()
+	go func() {
+		for {
+			select {
+			//读取网络数据
+			case data := <-c.receiveQueue:
+				if data.MsgId != 0 {
+					router.RouterMgr.ExecRouterFunc(c, data)
 				}
 				break
 			}
 		}
+	}()
+}
+
+func (c *Conn) Close() {
+	//如果当前链接已经关闭
+	if c.isClosed == true {
+		return
 	}
+	c.isClosed = true
+	c.conn.Close()
+	close(c.receiveQueue)
+	close(c.sendQueue)
+}
+
+func (c *Conn) GetGuid() string {
+	return c.guid
+}
+
+func (c *Conn) GetConn() interface{} {
+	return c.conn
 }
 
 //发送协议体
@@ -143,54 +105,61 @@ func (c *Conn) SendByte(message []byte) error {
 	return nil
 }
 
-func (c *Conn) GetGuid() string {
-	return c.guid
-}
-
-func (c *Conn) Start() {
-	go c.readThread()
-	go c.writeThread()
-	go func() {
-		for {
-			select {
-			//读取网络数据
-			case data := <-c.receiveQueue:
-				if data.MsgId != 0 {
-					router.RouterMgr.ExecRouterFunc(c, data)
-				}
+func (c *Conn) ReadThread() {
+	for {
+		//1 先读出流中的head部分
+		headData := make([]byte, c.pkg.GetHeadLen())
+		_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
+		if err != nil {
+			log.AppLogger.Info("network io read data err:" + err.Error())
+			break
+		}
+		//强制规定网络数据包头4位必须是网络的长度
+		//创建一个从输入二进制数据的ioReader
+		headerBuff := bytes.NewReader(headData)
+		msg := &headerMsg{}
+		if err := binary.Read(headerBuff, binary.BigEndian, &msg.DataLen); err != nil {
+			log.AppLogger.Info("server unpack err:" + err.Error())
+			break
+		}
+		if msg.DataLen > 0 {
+			//msg 是有data数据的，需要再次读取data数据
+			contentData := make([]byte, msg.DataLen)
+			//根据dataLen从io中读取字节流
+			_, err := io.ReadFull(c.conn, contentData)
+			if err != nil {
+				log.AppLogger.Info("network io read data err - 0:" + err.Error())
 				break
-			//关闭Conn连接
-			case <-c.stopChan:
-				return
+			}
+			//解压网络数据包
+			msgData, err := c.pkg.Unpack(contentData)
+			if msgData == nil {
+				log.AppLogger.Info("network io read data err - 1:" + err.Error())
+				break
+			}
+			//写入通道数据
+			c.receiveQueue <- network.TransitData{
+				MsgId: msgData.GetMsgId(),
+				Data:  msgData.GetData(),
 			}
 		}
-	}()
-}
-
-func (c *Conn) Close() {
-	//如果当前链接已经关闭
-	if c.isClosed == true {
-		return
 	}
-	c.stopChan <- true
-	c.isClosed = true
-	c.conn.Close()
-	close(c.receiveQueue)
-	close(c.sendQueue)
 }
 
-func (c *Conn) GetTimes() int64 {
-	return c.times
-}
-
-func (c *Conn) UpdateTime() {
-	c.times = time.Now().Unix()
-}
-
-func (c *Conn) SetData(data interface{}) {
-	c.data = data
-}
-
-func (c *Conn) GetConn() interface{} {
-	return c.conn
+func (c *Conn) WriteThread() {
+	for {
+		select {
+		case data, state := <-c.sendQueue:
+			if state {
+				_, err := c.conn.Write(data)
+				if err != nil {
+					//reconnect
+					if c.serve.(*TCPClient) != nil {
+						c.conn = c.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
+					}
+				}
+				break
+			}
+		}
+	}
 }

@@ -28,6 +28,14 @@ func (c *ConnManager) Remove(guid string) {
 	c.Connects.Delete(guid)
 }
 
+func (c *ConnManager) Close() {
+	c.Connects.Range(func(key, value interface{}) bool {
+		c.Connects.Delete(key)
+		value.(*Conn).Close()
+		return true
+	})
+}
+
 // 获取连接数量
 func (c *ConnManager) Len() int64 {
 	return *c.Connects.Length()
