@@ -1,8 +1,8 @@
 package tcp
 
 type Message struct {
-	ID   int32
-	Data []byte
+	ID    int32
+	Data  []byte
 }
 
 type MsgQueueData struct {

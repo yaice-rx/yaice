@@ -8,5 +8,5 @@ type IConn interface {
 	Close()
 	Send(message proto.Message) error
 	SendByte(message []byte) error
-	GetConn() interface{}
+	GetConn()interface{}
 }

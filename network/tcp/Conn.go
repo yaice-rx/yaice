@@ -1,8 +1,6 @@
 package tcp
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/satori/go.uuid"
@@ -17,7 +15,7 @@ import (
 )
 
 type Conn struct {
-	serve        interface{}
+	serve 		 interface{}
 	guid         string
 	pkg          network.IPacket
 	conn         *net.TCPConn
@@ -28,9 +26,9 @@ type Conn struct {
 	data         interface{}
 }
 
-func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.IConn {
+func NewConn(serve interface{},conn *net.TCPConn, pkg network.IPacket) network.IConn {
 	return &Conn{
-		serve:        serve,
+		serve:		  serve,
 		guid:         uuid.NewV4().String(),
 		conn:         conn,
 		pkg:          pkg,
@@ -68,7 +66,7 @@ func (c *Conn) Close() {
 		return
 	}
 	c.isClosed = true
-	c.conn.Close()
+	//c.conn.Close()
 	close(c.receiveQueue)
 	close(c.sendQueue)
 }
@@ -111,20 +109,17 @@ func (c *Conn) ReadThread() {
 		headData := make([]byte, c.pkg.GetHeadLen())
 		_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
 		if err != nil {
-			log.AppLogger.Info("network io read data err:" + err.Error())
+			if err != io.EOF {
+				log.AppLogger.Info("network io read data err:" + err.Error())
+			}
 			break
 		}
 		//强制规定网络数据包头4位必须是网络的长度
 		//创建一个从输入二进制数据的ioReader
-		headerBuff := bytes.NewReader(headData)
-		msg := &headerMsg{}
-		if err := binary.Read(headerBuff, binary.BigEndian, &msg.DataLen); err != nil {
-			log.AppLogger.Info("server unpack err:" + err.Error())
-			break
-		}
-		if msg.DataLen > 0 {
+		msgLen := utils.BytesToInt(headData)
+		if msgLen > 0 {
 			//msg 是有data数据的，需要再次读取data数据
-			contentData := make([]byte, msg.DataLen)
+			contentData := make([]byte, msgLen)
 			//根据dataLen从io中读取字节流
 			_, err := io.ReadFull(c.conn, contentData)
 			if err != nil {
@@ -133,7 +128,7 @@ func (c *Conn) ReadThread() {
 			}
 			//解压网络数据包
 			msgData, err := c.pkg.Unpack(contentData)
-			if msgData == nil {
+			if msgData == nil{
 				log.AppLogger.Info("network io read data err - 1:" + err.Error())
 				break
 			}
@@ -152,14 +147,18 @@ func (c *Conn) WriteThread() {
 		case data, state := <-c.sendQueue:
 			if state {
 				_, err := c.conn.Write(data)
-				if err != nil {
-					//reconnect
+				if err == nil {
+
+				}else {
+					log.AppLogger.Info("send msg error :"+err.Error())
 					if c.serve.(*TCPClient) != nil {
-						c.conn = c.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
+						//c.conn = c.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
 					}
 				}
-				break
 			}
+			break
 		}
 	}
 }
+
+

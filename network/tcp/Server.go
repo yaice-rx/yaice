@@ -44,7 +44,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int) int 
 				if ConnManagerMgr.Len() > 5000 {
 					tcpConn.Close()
 				} else {
-					conn := NewConn(s, tcpConn, packet)
+					conn := NewConn(s,tcpConn, packet)
 					ConnManagerMgr.Add(conn)
 					conn.Start()
 				}
