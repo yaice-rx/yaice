@@ -27,7 +27,7 @@ type Conn struct {
 }
 
 func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.IConn {
-	return &Conn{
+	conn_ := &Conn{
 		serve:        serve,
 		guid:         uuid.NewV4().String(),
 		conn:         conn,
@@ -37,27 +37,22 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.
 		sendQueue:    make(chan []byte, 10),
 		times:        time.Now().Unix(),
 	}
-}
-
-type headerMsg struct {
-	DataLen uint32
-}
-
-func (c *Conn) Start() {
-	go c.ReadThread()
-	go c.WriteThread()
 	go func() {
-		for {
-			select {
-			//读取网络数据
-			case data := <-c.receiveQueue:
-				if data.MsgId != 0 {
-					router.RouterMgr.ExecRouterFunc(c, data)
-				}
-				break
+		for data := range conn_.sendQueue {
+			_, err := conn_.conn.Write(data)
+			if err != nil {
+				log.AppLogger.Info("发送参数错误：" + err.Error())
 			}
 		}
 	}()
+	go func() {
+		for data := range conn_.receiveQueue {
+			if data.MsgId != 0 {
+				router.RouterMgr.ExecRouterFunc(conn_, data)
+			}
+		}
+	}()
+	return conn_
 }
 
 func (c *Conn) Close() {
@@ -66,7 +61,6 @@ func (c *Conn) Close() {
 		return
 	}
 	c.isClosed = true
-	//c.conn.Close()
 	close(c.receiveQueue)
 	close(c.sendQueue)
 }
@@ -137,23 +131,6 @@ func (c *Conn) ReadThread() {
 				MsgId: msgData.GetMsgId(),
 				Data:  msgData.GetData(),
 			}
-		}
-	}
-}
-
-func (c *Conn) WriteThread() {
-	for {
-		select {
-		case data, state := <-c.sendQueue:
-			if state {
-				_, err := c.conn.Write(data)
-				if err != nil {
-					if c.serve.(*TCPClient) != nil {
-						c.conn = c.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
-					}
-				}
-			}
-			break
 		}
 	}
 }

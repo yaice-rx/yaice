@@ -49,7 +49,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int) int 
 				} else {
 					conn := NewConn(s, tcpConn, packet)
 					atomic.AddUint32(&ServerConnectNumber, 1)
-					conn.Start()
+					go conn.ReadThread()
 				}
 			}
 		}()
