@@ -15,7 +15,7 @@ import (
 )
 
 type Conn struct {
-	serve 		 interface{}
+	serve        interface{}
 	guid         string
 	pkg          network.IPacket
 	conn         *net.TCPConn
@@ -26,9 +26,9 @@ type Conn struct {
 	data         interface{}
 }
 
-func NewConn(serve interface{},conn *net.TCPConn, pkg network.IPacket) network.IConn {
+func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.IConn {
 	return &Conn{
-		serve:		  serve,
+		serve:        serve,
 		guid:         uuid.NewV4().String(),
 		conn:         conn,
 		pkg:          pkg,
@@ -128,7 +128,7 @@ func (c *Conn) ReadThread() {
 			}
 			//解压网络数据包
 			msgData, err := c.pkg.Unpack(contentData)
-			if msgData == nil{
+			if msgData == nil {
 				log.AppLogger.Info("network io read data err - 1:" + err.Error())
 				break
 			}
@@ -147,12 +147,9 @@ func (c *Conn) WriteThread() {
 		case data, state := <-c.sendQueue:
 			if state {
 				_, err := c.conn.Write(data)
-				if err == nil {
-
-				}else {
-					log.AppLogger.Info("send msg error :"+err.Error())
+				if err != nil {
 					if c.serve.(*TCPClient) != nil {
-						//c.conn = c.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
+						c.conn = c.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
 					}
 				}
 			}
@@ -160,5 +157,3 @@ func (c *Conn) WriteThread() {
 		}
 	}
 }
-
-

@@ -5,6 +5,7 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"sync/atomic"
 )
 
 type Server struct {
@@ -14,6 +15,8 @@ type Server struct {
 }
 
 var ServerMgr = _NewServer()
+
+var ServerConnectNumber uint32 = 0
 
 func _NewServer() network.IServer {
 	return &Server{}
@@ -41,11 +44,11 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int) int 
 				if nil != err || nil == tcpConn {
 					continue
 				}
-				if ConnManagerMgr.Len() > 5000 {
+				if atomic.LoadUint32(&ServerConnectNumber) > 5000 {
 					tcpConn.Close()
 				} else {
-					conn := NewConn(s,tcpConn, packet)
-					ConnManagerMgr.Add(conn)
+					conn := NewConn(s, tcpConn, packet)
+					atomic.AddUint32(&ServerConnectNumber, 1)
 					conn.Start()
 				}
 			}
