@@ -19,7 +19,7 @@ type IServer interface {
 	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
 	RegisterServeNodeData(config config.Config) error
 	GetServeNodeData(path string) []*config.Config
-	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, config *config.Config))
+	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value *config.Config))
 	Listen(packet network.IPacket, network string, startPort int, endPort int) int
 	Dial(packet network.IPacket, network string, address string) network.IConn
 	Close()
