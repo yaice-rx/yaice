@@ -76,7 +76,7 @@ func (s *server) GetServeNodeData(path string) []*config.Config {
  * @func  监听来自集群服务的通知
  * @param 异步调用 func(回调事件，回调函数)
  */
-func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_EventType, config *config.Config)) {
+func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value *config.Config)) {
 	go s.clusterMgr.Watch(eventHandler)
 }
 

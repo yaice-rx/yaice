@@ -18,7 +18,7 @@ type IManager interface {
 	Listen(endpoints []string) error
 	Set(path string, data config.Config) error
 	Get(path string) []*config.Config
-	Watch(eventHandler func(eventType mvccpb.Event_EventType, config *config.Config))
+	Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value *config.Config))
 	Close()
 }
 
@@ -98,7 +98,7 @@ func (s *manager) Get(path string) []*config.Config {
 }
 
 //检测
-func (s *manager) Watch(eventHandler func(eventType mvccpb.Event_EventType, config *config.Config)) {
+func (s *manager) Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value *config.Config)) {
 	watcher := clientv3.NewWatcher(s.conn)
 	for {
 		rch := watcher.Watch(context.TODO(), s.prefix, clientv3.WithPrefix())
@@ -107,7 +107,7 @@ func (s *manager) Watch(eventHandler func(eventType mvccpb.Event_EventType, conf
 				config := &config.Config{}
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				json.Unmarshal(event.Kv.Value, config)
-				eventHandler(event.Type, config)
+				eventHandler(event.Type, event.Kv.Key, config)
 			}
 		}
 	}
