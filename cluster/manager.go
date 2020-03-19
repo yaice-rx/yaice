@@ -12,13 +12,14 @@ import (
 )
 
 const prefix = "yaice"
+
 const ConnectTTL = 20
 
 type IManager interface {
 	Listen(endpoints []string) error
-	Set(path string, data config.Config) error
-	Get(path string) []*config.Config
-	Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value *config.Config))
+	Set(path string, data config.IConfig) error
+	Get(path string) []config.IConfig
+	Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value config.IConfig))
 	Close()
 }
 
@@ -53,9 +54,9 @@ func (s *manager) Listen(endpoints []string) error {
 	return nil
 }
 
-func (s *manager) Set(path string, data config.Config) error {
+func (s *manager) Set(path string, data config.IConfig) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	jsonData, err := json.Marshal(data)
+	jsonData, err := json.Marshal(data.(*config.Config))
 	if err != nil {
 		log.AppLogger.Debug("ETCD 注册数据,序列化失败：" + err.Error())
 		return err
@@ -78,27 +79,27 @@ func (s *manager) Set(path string, data config.Config) error {
 	return nil
 }
 
-func (s *manager) Get(path string) []*config.Config {
+func (s *manager) Get(path string) []config.IConfig {
 	resp, err := s.conn.Get(context.TODO(), s.prefix+"\\"+path, clientv3.WithPrefix())
 	if err != nil {
 		log.AppLogger.Debug("数据获取失败：" + err.Error())
 		return nil
 	}
-	configMap := []*config.Config{}
+	configMap := []config.IConfig{}
 	for _, value := range s.readData(resp) {
-		config := &config.Config{}
+		conf := &config.Config{}
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
-		if err := json.Unmarshal(value, config); err != nil {
+		if err := json.Unmarshal(value, conf); err != nil {
 			log.AppLogger.Debug("序列化失败：" + err.Error())
 			continue
 		}
-		configMap = append(configMap, config)
+		configMap = append(configMap, conf)
 	}
 	return configMap
 }
 
 //检测
-func (s *manager) Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value *config.Config)) {
+func (s *manager) Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value config.IConfig)) {
 	watcher := clientv3.NewWatcher(s.conn)
 	for {
 		rch := watcher.Watch(context.TODO(), s.prefix, clientv3.WithPrefix())

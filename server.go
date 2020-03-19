@@ -9,7 +9,6 @@ import (
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/router"
-	"strconv"
 )
 
 //服务运行状态
@@ -17,20 +16,21 @@ var shutdown = make(chan bool, 1)
 
 type IServer interface {
 	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
-	RegisterServeNodeData(config config.Config) error
-	GetServeNodeData(path string) []*config.Config
-	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value *config.Config))
+	RegisterServeNodeData() error
+	GetServeNodeData(path string) []config.IConfig
+	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value config.IConfig))
 	Listen(packet network.IPacket, network string, startPort int, endPort int) int
 	Dial(packet network.IPacket, network string, address string) network.IConn
 	Close()
 }
 
 type server struct {
-	cancel     context.CancelFunc
-	routerMgr  router.IRouter
-	clusterMgr cluster.IManager
-	config     config.Config
-	connEtcds  []string
+	cancel         context.CancelFunc
+	routerMgr      router.IRouter
+	clusterMgr     cluster.IManager
+	configMgr      config.IConfig
+	connManagerMgr network.IConnManager
+	connEtcds      []string
 }
 
 /**
@@ -38,10 +38,11 @@ type server struct {
  */
 func NewServer(endpoints []string) IServer {
 	server := &server{
-		routerMgr:  router.RouterMgr,
-		clusterMgr: cluster.ManagerMgr,
-		config:     config.Config{},
-		connEtcds:  endpoints,
+		routerMgr:      router.RouterMgr,
+		clusterMgr:     cluster.ManagerMgr,
+		configMgr:      config.ConfInstance(),
+		connEtcds:      endpoints,
+		connManagerMgr: network.ConnManagerInstance(),
 	}
 	//启动集群服务
 	server.clusterMgr.Listen(server.connEtcds)
@@ -59,15 +60,15 @@ func (s *server) AddRouter(message proto.Message, handler func(conn network.ICon
 /**
  * @param config 服务参数配置
  */
-func (s *server) RegisterServeNodeData(config config.Config) error {
-	return s.clusterMgr.Set(config.ServerGroup+"\\"+config.TypeId+"\\"+strconv.Itoa(config.Pid), config)
+func (s *server) RegisterServeNodeData() error {
+	return s.clusterMgr.Set(s.configMgr.GetServerGroup()+"\\"+s.configMgr.GetTypeId()+"\\"+s.configMgr.GetPid(), s.configMgr)
 }
 
 /**
  * @param path 获取服务的路径
  * @return 返回多个服务配置
  */
-func (s *server) GetServeNodeData(path string) []*config.Config {
+func (s *server) GetServeNodeData(path string) []config.IConfig {
 	return s.clusterMgr.Get(path)
 }
 
@@ -75,7 +76,7 @@ func (s *server) GetServeNodeData(path string) []*config.Config {
  * @func  监听来自集群服务的通知
  * @param 异步调用 func(回调事件，回调函数)
  */
-func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value *config.Config)) {
+func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value config.IConfig)) {
 	go s.clusterMgr.Watch(eventHandler)
 }
 
