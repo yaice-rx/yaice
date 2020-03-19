@@ -26,12 +26,11 @@ type IServer interface {
 }
 
 type server struct {
-	cancel       context.CancelFunc
-	routerMgr    router.IRouter
-	clusterMgr   cluster.IManager
-	config       config.Config
-	connServices []string
-	connEtcds    []string
+	cancel     context.CancelFunc
+	routerMgr  router.IRouter
+	clusterMgr cluster.IManager
+	config     config.Config
+	connEtcds  []string
 }
 
 /**

@@ -7,5 +7,6 @@ type IOptions interface {
 
 type IClient interface {
 	Connect() IConn
+	ConnsManager() IConnsManager
 	Close()
 }

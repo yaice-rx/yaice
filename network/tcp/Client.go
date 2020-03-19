@@ -14,6 +14,7 @@ type TCPClient struct {
 	conn    *net.TCPConn
 	packet  network.IPacket
 	opt     network.IOptions
+	conns   network.IConnsManager
 }
 
 type Options struct {
@@ -39,6 +40,7 @@ func NewClient(packet network.IPacket, address string, opt network.IOptions) net
 		address: address,
 		opt:     opt,
 		packet:  packet,
+		conns:   network.ConnectManagerMgr,
 	}
 	return c
 }
@@ -63,9 +65,14 @@ LOOP:
 	}
 	log.AppLogger.Info("网络连接中")
 	conn := NewConn(c, c.conn, c.packet)
+	c.conns.ModifyConnect("palyer", 111, conn)
 	//读取网络通道数据
 	go conn.ReadThread()
 	return conn
+}
+
+func (c *TCPClient) ConnsManager() network.IConnsManager {
+	return c.conns
 }
 
 func (c *TCPClient) ReConnect() network.IConn {
