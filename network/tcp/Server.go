@@ -14,11 +14,9 @@ type Server struct {
 	listener *net.TCPListener
 }
 
-var ServerMgr = _NewServer()
-
 var ServerConnectNumber uint32 = 0
 
-func _NewServer() network.IServer {
+func NewServer() network.IServer {
 	return &Server{}
 }
 

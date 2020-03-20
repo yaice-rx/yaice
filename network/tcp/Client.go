@@ -11,6 +11,7 @@ import (
 
 type TCPClient struct {
 	address string
+	tID     string
 	conn    *net.TCPConn
 	packet  network.IPacket
 	opt     network.IOptions

@@ -20,7 +20,7 @@ type IServer interface {
 	GetServeNodeData(path string) []config.IConfig
 	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value config.IConfig))
 	Listen(packet network.IPacket, network string, startPort int, endPort int) int
-	Dial(packet network.IPacket, network string, address string) network.IConn
+	Dial(packet network.IPacket, network string, address string, tID string) network.IConn
 	Close()
 }
 
@@ -88,14 +88,12 @@ func (s *server) Dial(packet network.IPacket, network_ string, address string) n
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
-
 	switch network_ {
 	case "kcp":
 		break
 	case "tcp", "tcp4", "tcp6":
 		clientMgr := tcp.NewClient(packet, address, tcp.WithMax(10))
 		return clientMgr.Connect()
-		break
 	}
 	return nil
 }
@@ -112,8 +110,8 @@ func (s *server) Listen(packet network.IPacket, network_ string, startPort int, 
 	case "kcp":
 		break
 	case "tcp", "tcp4", "tcp6":
-		return tcp.ServerMgr.Listen(packet, startPort, endPort)
-		break
+		serverMgr := tcp.NewServer()
+		return serverMgr.Listen(packet, startPort, endPort)
 	}
 	return 0
 }
