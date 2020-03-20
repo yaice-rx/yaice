@@ -20,7 +20,7 @@ type IServer interface {
 	GetServeNodeData(path string) []config.IConfig
 	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value config.IConfig))
 	Listen(packet network.IPacket, network string, startPort int, endPort int) int
-	Dial(packet network.IPacket, network string, address string, tID string) network.IConn
+	Dial(packet network.IPacket, network string, address string) network.IConn
 	Close()
 }
 
