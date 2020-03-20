@@ -7,6 +7,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"github.com/golang/protobuf/proto"
+	"github.com/sony/sonyflake"
 	"io"
 	"os"
 	"runtime"
@@ -162,6 +163,10 @@ func GetGid() int64 {
 	if err != nil {
 		panic(fmt.Errorf("can not get goroutine id: %v", err))
 	}
-
 	return int64(id)
+}
+
+func GenSonyflake() (uint64, error) {
+	flake := sonyflake.NewSonyflake(sonyflake.Settings{})
+	return flake.NextID()
 }
