@@ -3,10 +3,10 @@ package network
 import "sync"
 
 type IConnManager interface {
-	Modify(tId string, sId int64, c IConn)
-	Get(tId string, sId int64) IConn
-	GetServerTypeAll(tId string) map[int64]IConn
-	Remove(tId string, sId int64)
+	Modify(tId string, sId uint64, c IConn)
+	Get(tId string, sId uint64) IConn
+	GetServerTypeAll(tId string) map[uint64]IConn
+	Remove(tId string, sId uint64)
 }
 
 var ConnManagerMgr IConnManager
@@ -15,7 +15,7 @@ var mu sync.Mutex
 
 type connManagerData struct {
 	sync.Mutex
-	conns map[string]map[int64]IConn
+	conns map[string]map[uint64]IConn
 }
 
 func ConnManagerInstance() IConnManager {
@@ -29,11 +29,11 @@ func ConnManagerInstance() IConnManager {
 
 func newConnManager() IConnManager {
 	return &connManagerData{
-		conns: map[string]map[int64]IConn{},
+		conns: map[string]map[uint64]IConn{},
 	}
 }
 
-func (m *connManagerData) Modify(tId string, sId int64, c IConn) {
+func (m *connManagerData) Modify(tId string, sId uint64, c IConn) {
 	m.Lock()
 	defer m.Unlock()
 	if _, exits := m.conns[tId]; exits {
@@ -42,13 +42,13 @@ func (m *connManagerData) Modify(tId string, sId int64, c IConn) {
 			return
 		}
 	}
-	var data map[int64]IConn
+	var data map[uint64]IConn
 	data[sId] = c
 	m.conns[tId] = data
 	return
 }
 
-func (m *connManagerData) Get(tId string, sId int64) IConn {
+func (m *connManagerData) Get(tId string, sId uint64) IConn {
 	m.Lock()
 	defer m.Unlock()
 	if _, exits := m.conns[tId]; exits {
@@ -59,7 +59,7 @@ func (m *connManagerData) Get(tId string, sId int64) IConn {
 	return nil
 }
 
-func (m *connManagerData) GetServerTypeAll(tId string) map[int64]IConn {
+func (m *connManagerData) GetServerTypeAll(tId string) map[uint64]IConn {
 	m.Lock()
 	defer m.Unlock()
 	if _, exits := m.conns[tId]; exits {
@@ -68,7 +68,7 @@ func (m *connManagerData) GetServerTypeAll(tId string) map[int64]IConn {
 	return nil
 }
 
-func (m *connManagerData) Remove(tId string, sId int64) {
+func (m *connManagerData) Remove(tId string, sId uint64) {
 	m.Lock()
 	defer m.Unlock()
 	if _, exits := m.conns[tId]; exits {
