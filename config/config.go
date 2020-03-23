@@ -5,7 +5,7 @@ import "sync"
 type Config struct {
 	OutPort     int    //外部连接端口
 	InPort      int    //内部连接端口
-	Pid         string //服务进程编号
+	Pid         uint64 //服务进程编号
 	InHost      string //内部连接ip
 	TypeId      string //服务类型
 	ServerGroup string //服务分组
@@ -13,8 +13,8 @@ type Config struct {
 }
 
 type IConfig interface {
-	SetPid(pid string)
-	GetPid() string
+	SetPid(pid uint64)
+	GetPid() uint64
 	SetTypeId(tId string)
 	GetTypeId() string
 	SetServerGroup(group string)
@@ -46,11 +46,11 @@ func newConfig() IConfig {
 	return &Config{}
 }
 
-func (c *Config) SetPid(pid string) {
+func (c *Config) SetPid(pid uint64) {
 	c.Pid = pid
 }
 
-func (c *Config) GetPid() string {
+func (c *Config) GetPid() uint64 {
 	return c.Pid
 }
 

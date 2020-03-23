@@ -62,10 +62,9 @@ LOOP:
 		c.opt.SetMax()
 		goto LOOP
 	}
-	log.AppLogger.Info("网络连接中")
 	conn := NewConn(c, c.conn, c.packet)
 	//读取网络通道数据
-	go conn.ReadThread()
+	go conn.Start()
 	return conn
 }
 

@@ -39,6 +39,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int) int 
 			s.listener = listener
 			for {
 				tcpConn, err := listener.AcceptTCP()
+
 				if nil != err || nil == tcpConn {
 					continue
 				}
@@ -47,7 +48,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int) int 
 				} else {
 					conn := NewConn(s, tcpConn, packet)
 					atomic.AddUint32(&ServerConnectNumber, 1)
-					go conn.ReadThread()
+					go conn.Start()
 				}
 			}
 		}()

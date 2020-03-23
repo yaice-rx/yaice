@@ -97,7 +97,7 @@ func (c *Conn) SendByte(message []byte) error {
 	return nil
 }
 
-func (c *Conn) ReadThread() {
+func (c *Conn) Start() {
 	for {
 		//1 先读出流中的head部分
 		headData := make([]byte, c.pkg.GetHeadLen())
@@ -108,8 +108,6 @@ func (c *Conn) ReadThread() {
 			}
 			break
 		}
-		//强制规定网络数据包头4位必须是网络的长度
-		//创建一个从输入二进制数据的ioReader
 		msgLen := utils.BytesToInt(headData)
 		if msgLen > 0 {
 			//msg 是有data数据的，需要再次读取data数据
