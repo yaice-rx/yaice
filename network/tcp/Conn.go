@@ -99,6 +99,10 @@ func (c *Conn) SendByte(message []byte) error {
 
 func (c *Conn) Start() {
 	for {
+		//重置读取时间
+		if err := c.conn.SetReadDeadline(time.Now().Add(5 * 60 * time.Second)); err != nil {
+			return
+		}
 		//1 先读出流中的head部分
 		headData := make([]byte, c.pkg.GetHeadLen())
 		_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
@@ -132,6 +136,9 @@ func (c *Conn) Start() {
 				MsgId: msgData.GetMsgId(),
 				Data:  msgData.GetData(),
 			}
+		}
+		if err := c.conn.SetReadDeadline(time.Time{}); err != nil {
+			return
 		}
 	}
 }
