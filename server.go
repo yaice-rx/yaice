@@ -9,6 +9,7 @@ import (
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/router"
+	"strconv"
 )
 
 //服务运行状态
@@ -61,7 +62,7 @@ func (s *server) AddRouter(message proto.Message, handler func(conn network.ICon
  * @param config 服务参数配置
  */
 func (s *server) RegisterServeNodeData() error {
-	return s.clusterMgr.Set(s.configMgr.GetServerGroup()+"\\"+s.configMgr.GetTypeId()+"\\"+s.configMgr.GetPid(), s.configMgr)
+	return s.clusterMgr.Set(s.configMgr.GetServerGroup()+"\\"+s.configMgr.GetTypeId()+"\\"+strconv.FormatUint(s.configMgr.GetPid(), 10), s.configMgr)
 }
 
 /**
