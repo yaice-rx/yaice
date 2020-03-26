@@ -28,7 +28,7 @@ func (dp *packet) GetHeadLen() uint32 {
 func (dp *packet) Pack(msg network.TransitData) []byte {
 	msgLength := int32(len(msg.Data) + ConstMsgIdLen)
 	dataLen := utils.IntToBytes(msgLength)
-	dataId := utils.IntToBytes(msg.MsgId)
+	dataId := utils.LongToBytes(msg.MsgId)
 	return append(append(dataLen, dataId...), msg.Data...)
 }
 

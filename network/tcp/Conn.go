@@ -77,7 +77,7 @@ func (c *Conn) Send(message proto.Message) error {
 	data, err := proto.Marshal(message)
 	protoId := utils.ProtocalNumber(utils.GetProtoName(message))
 	if err != nil {
-		log.AppLogger.Error("发送消息时，序列化失败 : "+err.Error(), zap.Int32("MessageId", protoId))
+		log.AppLogger.Error("发送消息时，序列化失败 : "+err.Error(), zap.Int64("MessageId", protoId))
 		return err
 	}
 	if c.isClosed == true {
