@@ -3,7 +3,6 @@ package tcp
 import (
 	"errors"
 	"github.com/golang/protobuf/proto"
-	"github.com/satori/go.uuid"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/router"
@@ -15,21 +14,21 @@ import (
 )
 
 type Conn struct {
-	serve        interface{}
-	guid         string
+	isClosed     bool
+	guid         uint64
+	times        int64
+	sendQueue    chan []byte
 	pkg          network.IPacket
 	conn         *net.TCPConn
 	receiveQueue chan network.TransitData
-	sendQueue    chan []byte
-	isClosed     bool
-	times        int64
+	serve        interface{}
 	data         interface{}
 }
 
 func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.IConn {
 	conn_ := &Conn{
 		serve:        serve,
-		guid:         uuid.NewV4().String(),
+		guid:         utils.GenSonyflake(),
 		conn:         conn,
 		pkg:          pkg,
 		isClosed:     false,
@@ -65,7 +64,7 @@ func (c *Conn) Close() {
 	close(c.sendQueue)
 }
 
-func (c *Conn) GetGuid() string {
+func (c *Conn) GetGuid() uint64 {
 	return c.guid
 }
 
@@ -99,10 +98,6 @@ func (c *Conn) SendByte(message []byte) error {
 
 func (c *Conn) Start() {
 	for {
-		//重置读取时间
-		if err := c.conn.SetReadDeadline(time.Now().Add(5 * 60 * time.Second)); err != nil {
-			return
-		}
 		//1 先读出流中的head部分
 		headData := make([]byte, c.pkg.GetHeadLen())
 		_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
@@ -111,6 +106,11 @@ func (c *Conn) Start() {
 				log.AppLogger.Info("network io read data err:" + err.Error())
 			}
 			break
+		}
+		//重置读取时间
+		if err := c.conn.SetReadDeadline(time.Now().Add(5 * 60 * time.Second)); err != nil {
+			network.ConnManagerInstance().Remove(c.guid)
+			return
 		}
 		msgLen := utils.BytesToInt(headData)
 		if msgLen > 0 {
@@ -136,9 +136,6 @@ func (c *Conn) Start() {
 				MsgId: msgData.GetMsgId(),
 				Data:  msgData.GetData(),
 			}
-		}
-		if err := c.conn.SetReadDeadline(time.Time{}); err != nil {
-			return
 		}
 	}
 }

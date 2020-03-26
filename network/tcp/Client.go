@@ -63,6 +63,8 @@ LOOP:
 		goto LOOP
 	}
 	conn := NewConn(c, c.conn, c.packet)
+	//添加进连接列表
+	network.ConnManagerInstance().Modify(conn.GetGuid(), conn)
 	//读取网络通道数据
 	go conn.Start()
 	return conn

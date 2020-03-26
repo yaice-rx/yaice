@@ -1,12 +1,15 @@
 package network
 
-import "sync"
+import (
+	"errors"
+	"sync"
+)
 
 type IConnManager interface {
-	Modify(tId string, sId uint64, c IConn)
-	Get(tId string, sId uint64) IConn
-	GetServerTypeAll(tId string) map[uint64]IConn
-	Remove(tId string, sId uint64)
+	Modify(sId uint64, c IConn)
+	Get(sId uint64) IConn
+	GetLen() int
+	Remove(sId uint64) error
 }
 
 var ConnManagerMgr IConnManager
@@ -15,7 +18,7 @@ var mu sync.Mutex
 
 type connManagerData struct {
 	sync.Mutex
-	conns map[string]map[uint64]IConn
+	conns map[uint64]IConn
 }
 
 func ConnManagerInstance() IConnManager {
@@ -29,51 +32,36 @@ func ConnManagerInstance() IConnManager {
 
 func newConnManager() IConnManager {
 	return &connManagerData{
-		conns: map[string]map[uint64]IConn{},
+		conns: map[uint64]IConn{},
 	}
 }
 
-func (m *connManagerData) Modify(tId string, sId uint64, c IConn) {
+func (m *connManagerData) Modify(sId uint64, c IConn) {
 	m.Lock()
 	defer m.Unlock()
-	if _, exits := m.conns[tId]; exits {
-		if _, exits := m.conns[tId]; exits {
-			m.conns[tId][sId] = c
-			return
-		}
-	}
-	var data map[uint64]IConn
-	data[sId] = c
-	m.conns[tId] = data
+	m.conns[sId] = c
 	return
 }
 
-func (m *connManagerData) Get(tId string, sId uint64) IConn {
+func (m *connManagerData) Get(sId uint64) IConn {
 	m.Lock()
 	defer m.Unlock()
-	if _, exits := m.conns[tId]; exits {
-		if _, exits := m.conns[tId][sId]; exits {
-			return m.conns[tId][sId]
-		}
+	if _, exits := m.conns[sId]; exits {
+		return m.conns[sId]
 	}
 	return nil
 }
 
-func (m *connManagerData) GetServerTypeAll(tId string) map[uint64]IConn {
-	m.Lock()
-	defer m.Unlock()
-	if _, exits := m.conns[tId]; exits {
-		return m.conns[tId]
-	}
-	return nil
+func (m *connManagerData) GetLen() int {
+	return len(m.conns)
 }
 
-func (m *connManagerData) Remove(tId string, sId uint64) {
+func (m *connManagerData) Remove(sId uint64) error {
 	m.Lock()
 	defer m.Unlock()
-	if _, exits := m.conns[tId]; exits {
-		if _, exits := m.conns[tId][sId]; exits {
-			delete(m.conns[tId], sId)
-		}
+	if _, exits := m.conns[sId]; exits {
+		delete(m.conns, sId)
+		return nil
 	}
+	return errors.New("not found ConnectManagerMap key")
 }

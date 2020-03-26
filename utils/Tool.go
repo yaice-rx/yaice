@@ -166,7 +166,11 @@ func GetGid() int64 {
 	return int64(id)
 }
 
-func GenSonyflake() (uint64, error) {
+func GenSonyflake() uint64 {
 	flake := sonyflake.NewSonyflake(sonyflake.Settings{})
-	return flake.NextID()
+	val, err := flake.NextID()
+	if err != nil {
+		return 0
+	}
+	return val
 }
