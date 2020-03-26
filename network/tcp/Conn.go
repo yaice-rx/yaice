@@ -107,11 +107,6 @@ func (c *Conn) Start() {
 			}
 			break
 		}
-		//重置读取时间
-		if err := c.conn.SetReadDeadline(time.Now().Add(5 * 60 * time.Second)); err != nil {
-			network.ConnManagerInstance().Remove(c.guid)
-			return
-		}
 		msgLen := utils.BytesToInt(headData)
 		if msgLen > 0 {
 			//msg 是有data数据的，需要再次读取data数据
