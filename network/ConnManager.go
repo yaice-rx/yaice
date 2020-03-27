@@ -10,7 +10,7 @@ type IConnManager interface {
 	Get(sId uint64) IConn
 	GetLen() int
 	Remove(sId uint64) error
-	clear()
+	Clear()
 }
 
 var ConnManagerMgr IConnManager
