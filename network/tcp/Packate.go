@@ -9,7 +9,7 @@ import (
 
 const (
 	ConstMsgLength = 4 //消息长度
-	ConstMsgIdLen  = 4
+	ConstMsgIdLen  = 8
 )
 
 type packet struct {
@@ -20,7 +20,6 @@ func NewPacket() network.IPacket {
 }
 
 func (dp *packet) GetHeadLen() uint32 {
-	//DataLen uint32(4字节)
 	return ConstMsgLength
 }
 
