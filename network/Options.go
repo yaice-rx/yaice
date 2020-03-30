@@ -1,29 +1,30 @@
 package network
 
 type IOptions interface {
-	GetMaxRetires() uint32
-	GetMaxConnCount() uint32
+	GetMaxRetires() int32
+	GetMaxConnCount() int32
 	CallBackFunc() func(interface{})
 }
 
 type Options struct {
-	maxRetries   uint32
-	maxConnCount uint32
+	maxRetries   int32
+	maxConnCount int32
 	callBack     func(data interface{})
 }
 
-func WithMax(maxRetries uint32, callBackFunc func(interface{})) IOptions {
+func WithMax(maxRetries int32, maxConnCount int32, callBackFunc func(interface{})) IOptions {
 	return &Options{
-		maxRetries: maxRetries,
-		callBack:   callBackFunc,
+		maxRetries:   maxRetries,
+		maxConnCount: maxConnCount,
+		callBack:     callBackFunc,
 	}
 }
 
-func (o *Options) GetMaxRetires() uint32 {
+func (o *Options) GetMaxRetires() int32 {
 	return o.maxRetries
 }
 
-func (o *Options) GetMaxConnCount() uint32 {
+func (o *Options) GetMaxConnCount() int32 {
 	return o.maxConnCount
 }
 

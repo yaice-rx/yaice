@@ -10,7 +10,7 @@ import (
 
 type Server struct {
 	sync.Mutex
-	connCount uint32
+	connCount int32
 	network   string
 	opt       network.IOptions
 	listener  *net.TCPListener
@@ -44,11 +44,11 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, opt_
 				if nil != err || nil == tcpConn {
 					continue
 				}
-				if opt_.GetMaxConnCount() > atomic.LoadUint32(&s.connCount) {
+				if opt_.GetMaxConnCount() > atomic.LoadInt32(&s.connCount) {
 					opt_.CallBackFunc()(tcpConn)
 					return
 				}
-				atomic.AddUint32(&s.connCount, 1)
+				atomic.AddInt32(&s.connCount, 1)
 				conn := NewConn(s, tcpConn, packet)
 				go conn.Start()
 			}

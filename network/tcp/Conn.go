@@ -62,7 +62,7 @@ func (c *Conn) Close() {
 		return
 	}
 	//断开连接减少对应的连接
-	atomic.AddUint32(&c.serve.(*Server).connCount, uint32(int32(-1)))
+	atomic.AddInt32(&c.serve.(*Server).connCount, int32(-1))
 	//设置当前的句柄为关闭状态
 	c.isClosed = true
 	//关闭接收通道

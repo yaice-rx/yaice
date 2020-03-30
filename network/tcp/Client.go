@@ -10,7 +10,7 @@ import (
 )
 
 type TCPClient struct {
-	dialRetriesCount uint32
+	dialRetriesCount int32
 	address          string
 	tID              string
 	conn             *net.TCPConn
@@ -39,12 +39,12 @@ LOOP:
 	c.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		time.Sleep(3 * time.Second)
-		if c.opt.GetMaxRetires() > atomic.LoadUint32(&c.dialRetriesCount) {
+		if c.opt.GetMaxRetires() > atomic.LoadInt32(&c.dialRetriesCount) {
 			log.AppLogger.Error("网络重连失败:"+err.Error(), zap.String("function", "network.tcp.Client.Connect"))
 			return nil
 		}
 		log.AppLogger.Error("重连失败：" + err.Error())
-		atomic.AddUint32(&c.dialRetriesCount, 1)
+		atomic.AddInt32(&c.dialRetriesCount, 1)
 		goto LOOP
 	}
 	conn := NewConn(c, c.conn, c.packet)
