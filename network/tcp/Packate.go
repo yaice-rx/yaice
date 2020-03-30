@@ -20,7 +20,6 @@ func NewPacket() network.IPacket {
 }
 
 func (dp *packet) GetHeadLen() uint32 {
-	//DataLen uint32(4字节)
 	return ConstMsgLength
 }
 

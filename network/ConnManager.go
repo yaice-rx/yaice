@@ -10,6 +10,7 @@ type IConnManager interface {
 	Get(sId uint64) IConn
 	GetLen() int
 	Remove(sId uint64) error
+	Clear()
 }
 
 var ConnManagerMgr IConnManager
@@ -64,4 +65,13 @@ func (m *connManagerData) Remove(sId uint64) error {
 		return nil
 	}
 	return errors.New("not found ConnectManagerMap key")
+}
+
+func (m *connManagerData) Clear() {
+	m.Lock()
+	defer m.Unlock()
+	for key, conn := range m.conns {
+		conn.Close()
+		delete(m.conns, key)
+	}
 }
