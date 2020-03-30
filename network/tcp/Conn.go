@@ -45,11 +45,6 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, connStat
 		}
 	}()
 	go func() {
-		for data := range conn_.receiveQueue {
-			if data.MsgId != 0 {
-				router.RouterMgr.ExecRouterFunc(conn_, data)
-			}
-		}
 		for {
 			select {
 			case data := <-conn_.receiveQueue:
