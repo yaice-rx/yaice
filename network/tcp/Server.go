@@ -17,7 +17,7 @@ func NewServer() network.IServer {
 	return &Server{}
 }
 
-func (s *Server) Listen(packet network.IPacket, startPort int, endPort int) int {
+func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, noticeHandler func(conn network.IConn)) int {
 	port := make(chan int)
 	defer close(port)
 	for i := startPort; i < endPort; i++ {
@@ -44,7 +44,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int) int 
 				} else {
 					conn := NewConn(s, tcpConn, packet)
 					network.ConnManagerInstance().Modify(conn.GetGuid(), conn)
-					go conn.Start()
+					go conn.Start(noticeHandler)
 				}
 			}
 		}()

@@ -10,11 +10,12 @@ import (
 )
 
 type TCPClient struct {
-	address string
-	tID     string
-	conn    *net.TCPConn
-	packet  network.IPacket
-	opt     network.IOptions
+	address  string
+	tID      string
+	conn     *net.TCPConn
+	packet   network.IPacket
+	opt      network.IOptions
+	handler_ func(conn network.IConn)
 }
 
 type Options struct {
@@ -35,11 +36,12 @@ func (o *Options) SetMax() {
 	atomic.AddInt32(&o.max, -1)
 }
 
-func NewClient(packet network.IPacket, address string, opt network.IOptions) network.IClient {
+func NewClient(packet network.IPacket, address string, opt network.IOptions, noticeHandler func(conn network.IConn)) network.IClient {
 	c := &TCPClient{
-		address: address,
-		opt:     opt,
-		packet:  packet,
+		address:  address,
+		opt:      opt,
+		packet:   packet,
+		handler_: noticeHandler,
 	}
 	return c
 }
@@ -66,7 +68,7 @@ LOOP:
 	//添加进连接列表
 	network.ConnManagerInstance().Modify(conn.GetGuid(), conn)
 	//读取网络通道数据
-	go conn.Start()
+	go conn.Start(c.handler_)
 	return conn
 }
 

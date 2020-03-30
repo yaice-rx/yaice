@@ -9,7 +9,7 @@ import (
 
 const (
 	ConstMsgLength = 4 //消息长度
-	ConstMsgIdLen  = 4
+	ConstMsgIdLen  = 8
 )
 
 type packet struct {

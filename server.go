@@ -103,7 +103,7 @@ func (s *server) Dial(packet network.IPacket, network_ string, address string) n
  * @func  监听端口
  * @param network 网络连接方式,startPort 监听端口范围开始，endPort 监听端口范围结束
  */
-func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int) int {
+func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int, noticeHandler func(conn network.IConn)) int {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
@@ -112,7 +112,7 @@ func (s *server) Listen(packet network.IPacket, network_ string, startPort int, 
 		break
 	case "tcp", "tcp4", "tcp6":
 		serverMgr := tcp.NewServer()
-		return serverMgr.Listen(packet, startPort, endPort)
+		return serverMgr.Listen(packet, startPort, endPort, noticeHandler)
 	}
 	return 0
 }

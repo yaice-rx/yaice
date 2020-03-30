@@ -50,6 +50,20 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.
 				router.RouterMgr.ExecRouterFunc(conn_, data)
 			}
 		}
+		for {
+			select {
+			case data := <-conn_.receiveQueue:
+				if data.MsgId != 0 {
+					conn_.conn.SetReadDeadline(time.Now().Add(time.Duration(60) * time.Second))
+					router.RouterMgr.ExecRouterFunc(conn_, data)
+				}
+				break
+			case <-time.After(60 * time.Second):
+				conn_.Close()
+				network.ConnManagerInstance().Remove(conn_.guid)
+				break
+			}
+		}
 	}()
 	return conn_
 }
@@ -96,7 +110,7 @@ func (c *Conn) SendByte(message []byte) error {
 	return nil
 }
 
-func (c *Conn) Start() {
+func (c *Conn) Start(noticeHandler func(conn network.IConn)) {
 	for {
 		//1 先读出流中的head部分
 		headData := make([]byte, c.pkg.GetHeadLen())
