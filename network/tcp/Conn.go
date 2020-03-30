@@ -25,7 +25,7 @@ type Conn struct {
 	data         interface{}
 }
 
-func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, noticeHandler func(conn network.IConn)) network.IConn {
+func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, connStateFunc func(conn network.IConn)) network.IConn {
 	conn_ := &Conn{
 		serve:        serve,
 		guid:         utils.GenSonyflake(),
@@ -60,7 +60,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, noticeHa
 				break
 			case <-time.After(60 * time.Second):
 				conn_.Close()
-				noticeHandler(conn_)
+				connStateFunc(conn_)
 				network.ConnManagerInstance().Remove(conn_.guid)
 				break
 			}
