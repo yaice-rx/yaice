@@ -20,8 +20,8 @@ type IServer interface {
 	RegisterServeNodeData() error
 	GetServeNodeData(path string) []config.IConfig
 	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value config.IConfig))
-	Listen(packet network.IPacket, network string, startPort int, endPort int) int
-	Dial(packet network.IPacket, network string, address string) network.IConn
+	Listen(packet network.IPacket, network string, startPort int, endPort int, noticeHandler func(conn network.IConn)) int
+	Dial(packet network.IPacket, network string, address string, noticeHandler func(conn network.IConn)) network.IConn
 	Close()
 }
 
@@ -85,7 +85,7 @@ func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_Eve
  * 连接网络
  * @param network 网络连接方式,address 地址
  */
-func (s *server) Dial(packet network.IPacket, network_ string, address string) network.IConn {
+func (s *server) Dial(packet network.IPacket, network_ string, address string, noticeHandler func(conn network.IConn)) network.IConn {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
@@ -93,7 +93,7 @@ func (s *server) Dial(packet network.IPacket, network_ string, address string) n
 	case "kcp":
 		break
 	case "tcp", "tcp4", "tcp6":
-		clientMgr := tcp.NewClient(packet, address, tcp.WithMax(10))
+		clientMgr := tcp.NewClient(packet, address, tcp.WithMax(10), noticeHandler)
 		return clientMgr.Connect()
 	}
 	return nil
