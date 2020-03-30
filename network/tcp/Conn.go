@@ -25,7 +25,7 @@ type Conn struct {
 	data         interface{}
 }
 
-func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.IConn {
+func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, noticeHandler func(conn network.IConn)) network.IConn {
 	conn_ := &Conn{
 		serve:        serve,
 		guid:         utils.GenSonyflake(),
@@ -60,6 +60,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.
 				break
 			case <-time.After(60 * time.Second):
 				conn_.Close()
+				noticeHandler(conn_)
 				network.ConnManagerInstance().Remove(conn_.guid)
 				break
 			}
@@ -110,7 +111,7 @@ func (c *Conn) SendByte(message []byte) error {
 	return nil
 }
 
-func (c *Conn) Start(noticeHandler func(conn network.IConn)) {
+func (c *Conn) Start() {
 	for {
 		//1 先读出流中的head部分
 		headData := make([]byte, c.pkg.GetHeadLen())
