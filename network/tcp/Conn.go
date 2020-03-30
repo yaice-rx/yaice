@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net"
+	"sync/atomic"
 	"time"
 )
 
@@ -25,7 +26,7 @@ type Conn struct {
 	data         interface{}
 }
 
-func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, connStateFunc func(conn network.IConn)) network.IConn {
+func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.IConn {
 	conn_ := &Conn{
 		serve:        serve,
 		guid:         utils.GenSonyflake(),
@@ -45,19 +46,10 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, connStat
 		}
 	}()
 	go func() {
-		for {
-			select {
-			case data := <-conn_.receiveQueue:
-				if data.MsgId != 0 {
-					conn_.conn.SetReadDeadline(time.Now().Add(time.Duration(60) * time.Second))
-					router.RouterMgr.ExecRouterFunc(conn_, data)
-				}
-				break
-			case <-time.After(60 * time.Second):
-				conn_.Close()
-				connStateFunc(conn_)
-				network.ConnManagerInstance().Remove(conn_.guid)
-				break
+		for data := range conn_.receiveQueue {
+			if data.MsgId != 0 {
+				conn_.conn.SetReadDeadline(time.Now().Add(time.Duration(60) * time.Second))
+				router.RouterMgr.ExecRouterFunc(conn_, data)
 			}
 		}
 	}()
@@ -69,8 +61,13 @@ func (c *Conn) Close() {
 	if c.isClosed == true {
 		return
 	}
+	//断开连接减少对应的连接
+	atomic.AddUint32(&c.serve.(*Server).connCount, -1)
+	//设置当前的句柄为关闭状态
 	c.isClosed = true
+	//关闭接收通道
 	close(c.receiveQueue)
+	//关闭发送通道
 	close(c.sendQueue)
 }
 
@@ -91,7 +88,8 @@ func (c *Conn) Send(message proto.Message) error {
 		return err
 	}
 	if c.isClosed == true {
-		return errors.New("Connection closed when send msg")
+		log.AppLogger.Info("send msg(proto) channel It has been closed ... ")
+		return errors.New("send msg(proto) channel It has been closed ... ")
 	}
 	c.sendQueue <- c.pkg.Pack(network.TransitData{protoId, data})
 	return nil
@@ -100,7 +98,7 @@ func (c *Conn) Send(message proto.Message) error {
 //发送组装好的协议，但是加密始终是在组装包的时候完成加密功能
 func (c *Conn) SendByte(message []byte) error {
 	if c.isClosed == true {
-		return errors.New("Connection closed when send msg")
+		log.AppLogger.Info("send msg(byte[]) channel It has been closed ... ")
 	}
 	c.sendQueue <- message
 	return nil
@@ -109,7 +107,7 @@ func (c *Conn) SendByte(message []byte) error {
 func (c *Conn) Start() {
 	for {
 		if c.isClosed == true {
-			log.AppLogger.Info("server close ")
+			log.AppLogger.Info("conn It has been closed ... ")
 			return
 		}
 		//1 先读出流中的head部分

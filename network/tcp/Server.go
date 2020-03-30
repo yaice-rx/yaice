@@ -5,19 +5,24 @@ import (
 	"net"
 	"strconv"
 	"sync"
+	"sync/atomic"
 )
 
 type Server struct {
 	sync.Mutex
-	network  string
-	listener *net.TCPListener
+	connCount uint32
+	network   string
+	opt       network.IOptions
+	listener  *net.TCPListener
 }
 
 func NewServer() network.IServer {
-	return &Server{}
+	return &Server{
+		connCount: 0,
+	}
 }
 
-func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, noticeHandler func(conn network.IConn)) int {
+func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, opt_ network.IOptions) int {
 	port := make(chan int)
 	defer close(port)
 	for i := startPort; i < endPort; i++ {
@@ -39,13 +44,13 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, noti
 				if nil != err || nil == tcpConn {
 					continue
 				}
-				if network.ConnManagerInstance().GetLen() > 5000 {
-					tcpConn.Close()
-				} else {
-					conn := NewConn(s, tcpConn, packet, noticeHandler)
-					network.ConnManagerInstance().Modify(conn.GetGuid(), conn)
-					go conn.Start()
+				if opt_.GetMaxConnCount() > atomic.LoadUint32(&s.connCount) {
+					opt_.CallBackFunc()(tcpConn)
+					return
 				}
+				atomic.AddUint32(&s.connCount, 1)
+				conn := NewConn(s, tcpConn, packet)
+				go conn.Start()
 			}
 		}()
 		portData := <-port

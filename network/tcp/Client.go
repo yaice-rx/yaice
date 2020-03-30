@@ -10,38 +10,21 @@ import (
 )
 
 type TCPClient struct {
-	address       string
-	tID           string
-	conn          *net.TCPConn
-	packet        network.IPacket
-	opt           network.IOptions
-	connStateFunc func(conn network.IConn)
+	dialRetriesCount uint32
+	address          string
+	tID              string
+	conn             *net.TCPConn
+	packet           network.IPacket
+	opt              network.IOptions
+	connStateFunc    func(conn network.IConn)
 }
 
-type Options struct {
-	max int32
-}
-
-func WithMax(maxRetries int32) network.IOptions {
-	return &Options{
-		max: maxRetries,
-	}
-}
-
-func (o *Options) GetMax() int32 {
-	return o.max
-}
-
-func (o *Options) SetMax() {
-	atomic.AddInt32(&o.max, -1)
-}
-
-func NewClient(packet network.IPacket, address string, opt network.IOptions, connStateFunc_ func(conn network.IConn)) network.IClient {
+func NewClient(packet network.IPacket, address string, opt network.IOptions) network.IClient {
 	c := &TCPClient{
-		address:       address,
-		opt:           opt,
-		packet:        packet,
-		connStateFunc: connStateFunc_,
+		address:          address,
+		opt:              opt,
+		packet:           packet,
+		dialRetriesCount: 0,
 	}
 	return c
 }
@@ -56,17 +39,15 @@ LOOP:
 	c.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		time.Sleep(3 * time.Second)
-		if c.opt.GetMax() <= 0 {
+		if c.opt.GetMaxRetires() > atomic.LoadUint32(&c.dialRetriesCount) {
 			log.AppLogger.Error("网络重连失败:"+err.Error(), zap.String("function", "network.tcp.Client.Connect"))
 			return nil
 		}
 		log.AppLogger.Error("重连失败：" + err.Error())
-		c.opt.SetMax()
+		atomic.AddUint32(&c.dialRetriesCount, 1)
 		goto LOOP
 	}
-	conn := NewConn(c, c.conn, c.packet, c.connStateFunc)
-	//添加进连接列表
-	network.ConnManagerInstance().Modify(conn.GetGuid(), conn)
+	conn := NewConn(c, c.conn, c.packet)
 	//读取网络通道数据
 	go conn.Start()
 	return conn

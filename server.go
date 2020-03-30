@@ -20,18 +20,17 @@ type IServer interface {
 	RegisterServeNodeData() error
 	GetServeNodeData(path string) []config.IConfig
 	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value config.IConfig))
-	Listen(packet network.IPacket, network string, startPort int, endPort int, connStateFunc_ func(conn network.IConn)) int
-	Dial(packet network.IPacket, network string, address string, connStateFunc_ func(conn network.IConn)) network.IConn
+	Listen(packet network.IPacket, network string, startPort int, endPort int, options network.IOptions) int
+	Dial(packet network.IPacket, network string, address string, options network.IOptions) network.IConn
 	Close()
 }
 
 type server struct {
-	cancel         context.CancelFunc
-	routerMgr      router.IRouter
-	clusterMgr     cluster.IManager
-	configMgr      config.IConfig
-	connManagerMgr network.IConnManager
-	connEtcds      []string
+	cancel     context.CancelFunc
+	routerMgr  router.IRouter
+	clusterMgr cluster.IManager
+	configMgr  config.IConfig
+	connEtcds  []string
 }
 
 /**
@@ -39,11 +38,10 @@ type server struct {
  */
 func NewServer(endpoints []string) IServer {
 	server := &server{
-		routerMgr:      router.RouterMgr,
-		clusterMgr:     cluster.ManagerMgr,
-		configMgr:      config.ConfInstance(),
-		connEtcds:      endpoints,
-		connManagerMgr: network.ConnManagerInstance(),
+		routerMgr:  router.RouterMgr,
+		clusterMgr: cluster.ManagerMgr,
+		configMgr:  config.ConfInstance(),
+		connEtcds:  endpoints,
 	}
 	//启动集群服务
 	server.clusterMgr.Listen(server.connEtcds)
@@ -85,7 +83,7 @@ func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_Eve
  * 连接网络
  * @param network 网络连接方式,address 地址
  */
-func (s *server) Dial(packet network.IPacket, network_ string, address string, connStateFunc_ func(conn network.IConn)) network.IConn {
+func (s *server) Dial(packet network.IPacket, network_ string, address string, options network.IOptions) network.IConn {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
@@ -93,7 +91,7 @@ func (s *server) Dial(packet network.IPacket, network_ string, address string, c
 	case "kcp":
 		break
 	case "tcp", "tcp4", "tcp6":
-		clientMgr := tcp.NewClient(packet, address, tcp.WithMax(10), connStateFunc_)
+		clientMgr := tcp.NewClient(packet, address, options)
 		return clientMgr.Connect()
 	}
 	return nil
@@ -103,7 +101,7 @@ func (s *server) Dial(packet network.IPacket, network_ string, address string, c
  * @func  监听端口
  * @param network 网络连接方式,startPort 监听端口范围开始，endPort 监听端口范围结束
  */
-func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int, connStateFunc_ func(conn network.IConn)) int {
+func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int, options network.IOptions) int {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
@@ -112,7 +110,7 @@ func (s *server) Listen(packet network.IPacket, network_ string, startPort int, 
 		break
 	case "tcp", "tcp4", "tcp6":
 		serverMgr := tcp.NewServer()
-		return serverMgr.Listen(packet, startPort, endPort, connStateFunc_)
+		return serverMgr.Listen(packet, startPort, endPort, options)
 	}
 	return 0
 }
