@@ -108,6 +108,10 @@ func (c *Conn) SendByte(message []byte) error {
 
 func (c *Conn) Start() {
 	for {
+		if c.isClosed == true {
+			log.AppLogger.Info("server close ")
+			return
+		}
 		//1 先读出流中的head部分
 		headData := make([]byte, c.pkg.GetHeadLen())
 		_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
