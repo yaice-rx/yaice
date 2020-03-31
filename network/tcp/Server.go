@@ -12,7 +12,6 @@ type Server struct {
 	sync.Mutex
 	connCount int32
 	network   string
-	opt       network.IOptions
 	listener  *net.TCPListener
 }
 
@@ -22,7 +21,7 @@ func NewServer() network.IServer {
 	}
 }
 
-func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, opt_ network.IOptions) int {
+func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int {
 	port := make(chan int)
 	defer close(port)
 	for i := startPort; i < endPort; i++ {
@@ -44,11 +43,10 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, opt_
 				if nil != err || nil == tcpConn {
 					continue
 				}
-				if opt_.GetMaxConnCount() < atomic.LoadInt32(&s.connCount) {
-					if opt_.CallBackFunc() != nil {
-						opt_.CallBackFunc()(tcpConn)
+				if isAllowConnFunc != nil {
+					if !isAllowConnFunc(tcpConn) {
+						continue
 					}
-					return
 				}
 				atomic.AddInt32(&s.connCount, 1)
 				conn := NewConn(s, tcpConn, packet)

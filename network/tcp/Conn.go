@@ -41,6 +41,9 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.
 		for data := range conn_.sendQueue {
 			_, err := conn_.conn.Write(data)
 			if err != nil {
+				if conn_.serve.(*TCPClient) != nil {
+					conn_.conn = conn_.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
+				}
 				log.AppLogger.Info("发送参数错误：" + err.Error())
 			}
 		}
@@ -48,7 +51,6 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.
 	go func() {
 		for data := range conn_.receiveQueue {
 			if data.MsgId != 0 {
-				conn_.conn.SetReadDeadline(time.Now().Add(time.Duration(60) * time.Second))
 				router.RouterMgr.ExecRouterFunc(conn_, data)
 			}
 		}

@@ -20,7 +20,7 @@ type IServer interface {
 	RegisterServeNodeData() error
 	GetServeNodeData(path string) []config.IConfig
 	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value config.IConfig))
-	Listen(packet network.IPacket, network string, startPort int, endPort int, options network.IOptions) int
+	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int
 	Dial(packet network.IPacket, network string, address string, options network.IOptions) network.IConn
 	Close()
 }
@@ -81,7 +81,10 @@ func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_Eve
 
 /**
  * 连接网络
- * @param network 网络连接方式,address 地址
+ * @param network.IPacket  packet 网络包的协议处理方式，如果传输为nil，则采用默认的方式
+ * @param network string 网络连接方式
+ * @param address string 地址
+ * @param options 最大连接次数
  */
 func (s *server) Dial(packet network.IPacket, network_ string, address string, options network.IOptions) network.IConn {
 	if packet == nil {
@@ -98,10 +101,13 @@ func (s *server) Dial(packet network.IPacket, network_ string, address string, o
 }
 
 /**
- * @func  监听端口
- * @param network 网络连接方式,startPort 监听端口范围开始，endPort 监听端口范围结束
+ * @param network.IPacket  packet 网络包的协议处理方式，如果传输为nil，则采用默认的方式
+ * @param string network 网络连接方式
+ * @param int startPort 监听端口范围开始
+ * @param int endPort 监听端口范围结束
+ * @param func isAllowConnFunc  限制连接数，超过连接数的时候，由上层逻辑通知，底层不予维护
  */
-func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int, options network.IOptions) int {
+func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
@@ -110,7 +116,7 @@ func (s *server) Listen(packet network.IPacket, network_ string, startPort int, 
 		break
 	case "tcp", "tcp4", "tcp6":
 		serverMgr := tcp.NewServer()
-		return serverMgr.Listen(packet, startPort, endPort, options)
+		return serverMgr.Listen(packet, startPort, endPort, isAllowConnFunc)
 	}
 	return 0
 }
