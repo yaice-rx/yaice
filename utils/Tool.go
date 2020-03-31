@@ -59,9 +59,9 @@ func BytesToLong(b []byte) int64 {
 }
 
 //字节转换成long
-func BytesToShort(b []byte) int8 {
+func BytesToShort(b []byte) int16 {
 	bytesBuffer := bytes.NewBuffer(b)
-	var x int8
+	var x int16
 	binary.Read(bytesBuffer, binary.BigEndian, &x)
 	return x
 }
