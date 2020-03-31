@@ -39,8 +39,11 @@ LOOP:
 	c.conn, err = net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		time.Sleep(3 * time.Second)
-		if c.opt.GetMaxRetires() > atomic.LoadInt32(&c.dialRetriesCount) {
+		if c.opt.GetMaxRetires() < atomic.LoadInt32(&c.dialRetriesCount) {
 			log.AppLogger.Error("网络重连失败:"+err.Error(), zap.String("function", "network.tcp.Client.Connect"))
+			if c.opt.CallBackFunc() != nil {
+				c.opt.CallBackFunc()(c.conn)
+			}
 			return nil
 		}
 		log.AppLogger.Error("重连失败：" + err.Error())

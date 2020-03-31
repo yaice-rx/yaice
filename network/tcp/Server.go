@@ -44,8 +44,10 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, opt_
 				if nil != err || nil == tcpConn {
 					continue
 				}
-				if opt_.GetMaxConnCount() > atomic.LoadInt32(&s.connCount) {
-					opt_.CallBackFunc()(tcpConn)
+				if opt_.GetMaxConnCount() < atomic.LoadInt32(&s.connCount) {
+					if opt_.CallBackFunc() != nil {
+						opt_.CallBackFunc()(tcpConn)
+					}
 					return
 				}
 				atomic.AddInt32(&s.connCount, 1)
