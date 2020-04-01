@@ -1,6 +1,6 @@
 package network
 
 type TransitData struct {
-	MsgId int64
+	MsgId int32
 	Data  []byte
 }

@@ -67,11 +67,11 @@ func BytesToShort(b []byte) int16 {
 }
 
 //把协议名称转为唯一协议编号
-func ProtocalNumber(replacement string) int64 {
-	var h int64
+func ProtocalNumber(replacement string) int32 {
+	var h int32
 	h = 0
 	for _, char := range []rune(replacement) {
-		h = 31*h + int64(char)
+		h = 31*h + int32(char)
 	}
 	return h
 }

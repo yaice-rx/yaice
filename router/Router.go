@@ -9,14 +9,14 @@ import (
 
 type router struct {
 	sync.RWMutex
-	routers map[int64]func(conn network.IConn, content []byte)
+	routers map[int32]func(conn network.IConn, content []byte)
 }
 
 var RouterMgr = _NewRouterMgr()
 
 func _NewRouterMgr() IRouter {
 	return &router{
-		routers: make(map[int64]func(conn network.IConn, content []byte)),
+		routers: make(map[int32]func(conn network.IConn, content []byte)),
 	}
 }
 

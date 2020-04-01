@@ -1,7 +1,7 @@
 package tcp
 
 type Message struct {
-	ID   int64
+	ID   int32
 	Data []byte
 }
 
@@ -10,7 +10,7 @@ type MsgQueueData struct {
 }
 
 //获取消息ID
-func (this *Message) GetMsgId() int64 {
+func (this *Message) GetMsgId() int32 {
 	return this.ID
 }
 

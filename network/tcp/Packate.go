@@ -9,7 +9,7 @@ import (
 
 const (
 	ConstMsgLength = 4 //消息长度
-	ConstMsgIdLen  = 8
+	ConstMsgIdLen  = 4
 )
 
 type packet struct {
@@ -27,7 +27,7 @@ func (dp *packet) GetHeadLen() uint32 {
 func (dp *packet) Pack(msg network.TransitData) []byte {
 	msgLength := int32(len(msg.Data) + ConstMsgIdLen)
 	dataLen := utils.IntToBytes(msgLength)
-	dataId := utils.LongToBytes(msg.MsgId)
+	dataId := utils.IntToBytes(msg.MsgId)
 	return append(append(dataLen, dataId...), msg.Data...)
 }
 
