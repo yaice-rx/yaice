@@ -40,7 +40,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.
 	go func() {
 		for data := range conn_.sendQueue {
 			_, err := conn_.conn.Write(data)
-			if err != nil {
+			if err != nil && !conn_.isClosed {
 				if conn_.serve.(*TCPClient) != nil {
 					conn_.conn = conn_.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
 				}
