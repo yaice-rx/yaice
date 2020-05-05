@@ -1,5 +1,12 @@
 package network
 
+type ServeType int32
+
+const (
+	Serve_Client ServeType = 0
+	Serve_Server ServeType = 1
+)
+
 type IOptions interface {
 	GetMaxRetires() int32
 }

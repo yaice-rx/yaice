@@ -9,9 +9,9 @@ import (
 )
 
 type TCPClient struct {
+	type_            network.ServeType
 	dialRetriesCount int32
 	address          string
-	tID              string
 	conn             *net.TCPConn
 	packet           network.IPacket
 	opt              network.IOptions
@@ -20,9 +20,10 @@ type TCPClient struct {
 
 func NewClient(packet network.IPacket, address string, opt network.IOptions) network.IClient {
 	c := &TCPClient{
+		type_:            network.Serve_Client,
 		address:          address,
-		opt:              opt,
 		packet:           packet,
+		opt:              opt,
 		dialRetriesCount: 0,
 	}
 	return c
@@ -48,7 +49,7 @@ LOOP:
 	}
 	//连接上的时候，重置连接次数
 	c.dialRetriesCount = 0
-	conn := NewConn(c, c.conn, c.packet)
+	conn := NewConn(c, c.conn, c.packet, network.Serve_Client)
 	//读取网络通道数据
 	go conn.Start()
 	return conn

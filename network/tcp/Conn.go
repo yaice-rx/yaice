@@ -15,6 +15,7 @@ import (
 )
 
 type Conn struct {
+	type_        network.ServeType
 	isClosed     bool
 	guid         uint64
 	times        int64
@@ -26,8 +27,9 @@ type Conn struct {
 	data         interface{}
 }
 
-func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.IConn {
+func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ network.ServeType) network.IConn {
 	conn_ := &Conn{
+		type_:        type_,
 		serve:        serve,
 		guid:         utils.GenSonyflake(),
 		conn:         conn,
@@ -40,7 +42,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket) network.
 	go func() {
 		for data := range conn_.sendQueue {
 			_, err := conn_.conn.Write(data)
-			if err != nil && !conn_.isClosed {
+			if err != nil && !conn_.isClosed && type_ == network.Serve_Client {
 				if conn_.serve.(*TCPClient) != nil {
 					conn_.conn = conn_.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
 				}
@@ -63,8 +65,10 @@ func (c *Conn) Close() {
 	if c.isClosed == true {
 		return
 	}
-	//断开连接减少对应的连接
-	atomic.AddInt32(&c.serve.(*Server).connCount, int32(-1))
+	if c.type_ == network.Serve_Server {
+		//断开连接减少对应的连接
+		atomic.AddInt32(&c.serve.(*Server).connCount, int32(-1))
+	}
 	//设置当前的句柄为关闭状态
 	c.isClosed = true
 	//关闭接收通道

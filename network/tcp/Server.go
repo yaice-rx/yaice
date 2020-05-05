@@ -10,13 +10,14 @@ import (
 
 type Server struct {
 	sync.Mutex
+	type_     network.ServeType
 	connCount int32
-	network   string
 	listener  *net.TCPListener
 }
 
 func NewServer() network.IServer {
 	return &Server{
+		type_:     network.Serve_Server,
 		connCount: 0,
 	}
 }
@@ -49,7 +50,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, isAl
 					}
 				}
 				atomic.AddInt32(&s.connCount, 1)
-				conn := NewConn(s, tcpConn, packet)
+				conn := NewConn(s, tcpConn, packet, network.Serve_Server)
 				go conn.Start()
 			}
 		}()
