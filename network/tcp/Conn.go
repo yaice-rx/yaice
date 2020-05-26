@@ -42,6 +42,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 	go func() {
 		for data := range conn_.sendQueue {
 			_, err := conn_.conn.Write(data)
+			//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
 			if err != nil && !conn_.isClosed && type_ == network.Serve_Client {
 				if conn_.serve.(*TCPClient) != nil {
 					conn_.conn = conn_.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
