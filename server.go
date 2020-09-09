@@ -9,6 +9,7 @@ import (
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/router"
+	"reflect"
 	"strconv"
 )
 
@@ -54,6 +55,11 @@ func NewServer(endpoints []string) IServer {
  */
 func (s *server) AddRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {
 	s.routerMgr.AddRouter(message, handler)
+}
+
+func (s *server) RegisterMQProto(mqProto interface{}, handler func(content []byte)) {
+	val := reflect.Indirect(reflect.ValueOf(mqProto))
+	s.routerMgr.RegisterMQ(val.Field(0).Type().Name(), handler)
 }
 
 /**
