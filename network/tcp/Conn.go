@@ -138,12 +138,12 @@ func (c *Conn) Start() {
 			}
 			//解压网络数据包
 			msgData, err, func_ := c.pkg.Unpack(contentData)
+			if func_ != nil {
+				func_(c)
+			}
 			if msgData == nil {
 				log.AppLogger.Info("network io read data err - 1:" + err.Error())
 				break
-			}
-			if func_ != nil {
-				func_(c)
 			}
 			//写入通道数据
 			c.receiveQueue <- network.TransitData{
