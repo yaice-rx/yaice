@@ -23,10 +23,12 @@ type MsgQueue struct {
 	conn *amqp.Connection
 	// RabbitMQ 监听连接错误
 	closeC chan *amqp.Error
+	// MQ的exchange与其绑定的queues
+	exchangeBinds []*ExchangeBinds
 
-	consumers []*Consumer
+	consumer *Consumer
 	//生成者
-	producers []*Producer
+	producer *Producer
 	// 监听用户手动关闭
 	stopC chan struct{}
 	// MQ状态
@@ -35,9 +37,8 @@ type MsgQueue struct {
 
 func New(url string) *MsgQueue {
 	return &MsgQueue{
-		url:       url,
-		producers: make([]*Producer, 0, 1),
-		state:     StateClosed,
+		url:   url,
+		state: StateClosed,
 	}
 }
 
@@ -47,7 +48,7 @@ func (m *MsgQueue) Open() (mq *MsgQueue, err error) {
 	defer m.mutex.Unlock()
 
 	if m.state == StateOpened {
-		return m, errors.New("MQ: Had been opened")
+		return m, fmt.Errorf("rabbit 已经启动")
 	}
 
 	if m.conn, err = m.dial(); err != nil {
@@ -64,20 +65,33 @@ func (m *MsgQueue) Open() (mq *MsgQueue, err error) {
 	return m, nil
 }
 
+func (p *MsgQueue) SetExchangeBinds(eb []*ExchangeBinds) bool {
+	p.mutex.Lock()
+	if p.state != StateOpened {
+		p.exchangeBinds = eb
+	}
+	p.mutex.Unlock()
+
+	// 创建并初始化channel
+	ch, err := p.channel()
+	if err != nil {
+		return false
+	}
+	if err = applyExchangeBinds(ch, p.exchangeBinds); err != nil {
+		ch.Close()
+		return false
+	}
+	return true
+}
+
 func (m *MsgQueue) Close() {
 	m.mutex.Lock()
 
 	// close producers
-	for _, p := range m.producers {
-		p.Close()
-	}
-	m.producers = m.producers[:0]
+	m.producer.Close()
 
 	// close consumers
-	for _, c := range m.consumers {
-		c.Close()
-	}
-	m.consumers = m.consumers[:0]
+	m.consumer.Close()
 
 	// close mq connection
 	select {
@@ -103,7 +117,6 @@ func (m *MsgQueue) Producer(name string) (*Producer, error) {
 		return nil, fmt.Errorf("MQ: Not initialized, now state is %d", m.State)
 	}
 	p := newProducer(name, m)
-	m.producers = append(m.producers, p)
 	return p, nil
 }
 
@@ -115,7 +128,6 @@ func (m *MsgQueue) Consumer(name string) (*Consumer, error) {
 		return nil, fmt.Errorf("MQ: Not initialized, now state is %d", m.State)
 	}
 	c := newConsumer(name, m)
-	m.consumers = append(m.consumers, c)
 	return c, nil
 }
 
@@ -159,6 +171,54 @@ func (m *MsgQueue) keepalive() {
 		}
 		log.Printf("[ERROR] MQ: Try to reconnect to MQ failed over maxRetry(%d), so exit.\n", maxRetry)
 	}
+}
+
+/**
+ * 申请绑定交换机
+ */
+func applyExchangeBinds(ch *amqp.Channel, exchangeBinds []*ExchangeBinds) error {
+	if ch == nil {
+		return fmt.Errorf("MQ: Nil producer channel")
+	}
+	if len(exchangeBinds) <= 0 {
+		return fmt.Errorf("MQ: Empty exchangeBinds")
+	}
+	for _, eb := range exchangeBinds {
+		if eb.Exch == nil {
+			return fmt.Errorf("MQ: Nil exchange found.")
+		}
+		if len(eb.Bindings) <= 0 {
+			return fmt.Errorf("MQ: No bindings queue found for exchange(%s)", eb.Exch.Name)
+		}
+		//创建交换机
+		ex := eb.Exch
+		if err := ch.ExchangeDeclare(ex.Name, ex.Kind, ex.Durable, ex.AutoDelete, ex.Internal, ex.NoWait, ex.Args); err != nil {
+			return fmt.Errorf("MQ: Declare exchange(%s) failed, %v", ex.Name, err)
+		}
+		//交换机跟channel绑定
+		for _, b := range eb.Bindings {
+			if b == nil {
+				return fmt.Errorf("MQ: Nil binding found, exchange:%s", ex.Name)
+			}
+			if len(b.Queues) <= 0 {
+				return fmt.Errorf("MQ: No queues found for exchange(%s)", ex.Name)
+			}
+			for _, q := range b.Queues {
+				if q == nil {
+					return fmt.Errorf("MQ: Nil queue found, exchange:%s", ex.Name)
+				}
+				//创建channel
+				if _, err := ch.QueueDeclare(q.Name, q.Durable, q.AutoDelete, q.Exclusive, q.NoWait, q.Args); err != nil {
+					return fmt.Errorf("MQ: Declare queue(%s) failed, %v", q.Name, err)
+				}
+				//channel跟exchange绑定
+				if err := ch.QueueBind(q.Name, b.RouteKey, ex.Name, b.NoWait, b.Args); err != nil {
+					return fmt.Errorf("MQ: Bind exchange(%s) <--> queue(%s) failed, %v", ex.Name, q.Name, err)
+				}
+			}
+		}
+	}
+	return nil
 }
 
 func (m *MsgQueue) channel() (*amqp.Channel, error) {
