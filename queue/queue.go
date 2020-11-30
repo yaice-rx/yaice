@@ -8,6 +8,11 @@ import (
 	"time"
 )
 
+/**
+ 工作流程：
+	Exchange和Queue绑定key（一个交换机可以和多个信道进行绑定）
+*/
+
 var (
 	StateClosed    = uint8(0)
 	StateOpened    = uint8(1)
@@ -24,13 +29,15 @@ type MsgQueue struct {
 	// RabbitMQ 监听连接错误
 	closeC chan *amqp.Error
 	// MQ的exchange与其绑定的queues
-	exchangeBinds []*ExchangeBinds
-
-	consumer *Consumer
-	//生成者
-	producer *Producer
+	exchangeBinds *ExchangeBinds
 	// 监听用户手动关闭
 	stopC chan struct{}
+	//注册接受者
+	receiver func([]byte) bool
+	//信道
+	ch *amqp.Channel
+	//Receiver State
+	receiverClose chan bool
 	// MQ状态
 	state uint8
 }
@@ -65,7 +72,7 @@ func (m *MsgQueue) Open() (mq *MsgQueue, err error) {
 	return m, nil
 }
 
-func (p *MsgQueue) SetExchangeBinds(eb []*ExchangeBinds) bool {
+func (p *MsgQueue) SetExchangeBinds(eb *ExchangeBinds) bool {
 	p.mutex.Lock()
 	if p.state != StateOpened {
 		p.exchangeBinds = eb
@@ -81,54 +88,77 @@ func (p *MsgQueue) SetExchangeBinds(eb []*ExchangeBinds) bool {
 		ch.Close()
 		return false
 	}
+	p.ch = ch
 	return true
 }
 
 func (m *MsgQueue) Close() {
 	m.mutex.Lock()
-
-	// close producers
-	m.producer.Close()
-
-	// close consumers
-	m.consumer.Close()
-
-	// close mq connection
-	select {
-	case <-m.stopC:
-		// had been closed
-	default:
-		close(m.stopC)
-	}
-
+	m.receiverClose <- true
 	m.mutex.Unlock()
-
 	// wait done
 	for m.State() != StateClosed {
 		time.Sleep(time.Second)
+		m.state = StateClosed
 	}
 }
 
-func (m *MsgQueue) Producer(name string) (*Producer, error) {
+func (m *MsgQueue) Producer(mandatory bool, body []byte) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	if m.state != StateOpened {
-		return nil, fmt.Errorf("MQ: Not initialized, now state is %d", m.State)
+		return fmt.Errorf("MQ: Not initialized, now state is %d", m.State)
 	}
-	p := newProducer(name, m)
-	return p, nil
+	return m.ch.Publish(m.exchangeBinds.Exch.Name, m.exchangeBinds.Binding.RouteKey, mandatory, false, amqp.Publishing{
+		ContentType:     "application/json",
+		ContentEncoding: "",
+		DeliveryMode:    Persistent,
+		Priority:        uint8(5),
+		Timestamp:       time.Now(),
+		Body:            body,
+	})
 }
 
-func (m *MsgQueue) Consumer(name string) (*Consumer, error) {
+func (m *MsgQueue) Consumer(name string, autoAck bool) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
 	if m.state != StateOpened {
-		return nil, fmt.Errorf("MQ: Not initialized, now state is %d", m.State)
+		return fmt.Errorf("MQ: Not initialized, now state is %d", m.State)
 	}
-	c := newConsumer(name, m)
-	return c, nil
+	msgs, err := m.ch.Consume(m.exchangeBinds.Binding.Name, name, autoAck,
+		// 是否具有排他性
+		false,
+		// 如果设置为true，表示不能将同一个connection中发送的消息传递给这个connection中的消费者
+		false,
+		// 队列消费是否阻塞
+		false,
+		nil)
+	if err != nil {
+		return fmt.Errorf("MQ: Consumer(%s) consume queue(%s) failed, %v", m.exchangeBinds.Exch.Name, m.exchangeBinds.Binding.Name, err)
+	}
+	if err != nil {
+		fmt.Println(err)
+	}
+	m.receiverClose = make(chan bool)
+	// 启用协和处理消息
+	go func() {
+		for d := range msgs {
+			// 实现我们要实现的逻辑函数
+			if m.receiver(d.Body) {
+				d.Ack(true)
+			}
+			log.Printf("Received a message: %s", d.Body)
+			fmt.Println(d.Body)
+		}
+	}()
+	<-m.receiverClose
+	return nil
+}
+
+func (m MsgQueue) RegisterReceiver(func_ func([]byte) bool) {
+	m.receiver = func_
 }
 
 func (m *MsgQueue) State() uint8 {
@@ -176,47 +206,35 @@ func (m *MsgQueue) keepalive() {
 /**
  * 申请绑定交换机
  */
-func applyExchangeBinds(ch *amqp.Channel, exchangeBinds []*ExchangeBinds) error {
+func applyExchangeBinds(ch *amqp.Channel, eb *ExchangeBinds) error {
 	if ch == nil {
 		return fmt.Errorf("MQ: Nil producer channel")
 	}
-	if len(exchangeBinds) <= 0 {
-		return fmt.Errorf("MQ: Empty exchangeBinds")
+	if eb.Exch == nil {
+		return fmt.Errorf("MQ: Nil exchange found.")
 	}
-	for _, eb := range exchangeBinds {
-		if eb.Exch == nil {
-			return fmt.Errorf("MQ: Nil exchange found.")
-		}
-		if len(eb.Bindings) <= 0 {
-			return fmt.Errorf("MQ: No bindings queue found for exchange(%s)", eb.Exch.Name)
-		}
-		//创建交换机
-		ex := eb.Exch
-		if err := ch.ExchangeDeclare(ex.Name, ex.Kind, ex.Durable, ex.AutoDelete, ex.Internal, ex.NoWait, ex.Args); err != nil {
-			return fmt.Errorf("MQ: Declare exchange(%s) failed, %v", ex.Name, err)
-		}
-		//交换机跟channel绑定
-		for _, b := range eb.Bindings {
-			if b == nil {
-				return fmt.Errorf("MQ: Nil binding found, exchange:%s", ex.Name)
-			}
-			if len(b.Queues) <= 0 {
-				return fmt.Errorf("MQ: No queues found for exchange(%s)", ex.Name)
-			}
-			for _, q := range b.Queues {
-				if q == nil {
-					return fmt.Errorf("MQ: Nil queue found, exchange:%s", ex.Name)
-				}
-				//创建channel
-				if _, err := ch.QueueDeclare(q.Name, q.Durable, q.AutoDelete, q.Exclusive, q.NoWait, q.Args); err != nil {
-					return fmt.Errorf("MQ: Declare queue(%s) failed, %v", q.Name, err)
-				}
-				//channel跟exchange绑定
-				if err := ch.QueueBind(q.Name, b.RouteKey, ex.Name, b.NoWait, b.Args); err != nil {
-					return fmt.Errorf("MQ: Bind exchange(%s) <--> queue(%s) failed, %v", ex.Name, q.Name, err)
-				}
-			}
-		}
+	//创建交换机
+	ex := eb.Exch
+
+	// 用于检查交换机是否存在,已经存在不需要重复声明
+	err := ch.ExchangeDeclarePassive(ex.Name, ex.RoutingKey, true, false, false, true, nil)
+	if err != nil {
+		// 注册交换机
+		// name:交换机名称,kind:交换机类型,durable:是否持久化,队列存盘,true服务重启后信息不会丢失,影响性能;autoDelete:是否自动删除;
+		// noWait:是否非阻塞, true为是,不等待RMQ返回信息;args:参数,传nil即可; internal:是否为内部
+		err = ch.ExchangeDeclare(ex.Name, ex.RoutingKey, true, false, false, true, nil)
+	}
+	//交换机跟channel绑定
+	if eb.Binding == nil {
+		return fmt.Errorf("MQ: Nil queue found, exchange:%s", ex.Name)
+	}
+	//创建channel
+	if _, err := ch.QueueDeclare(eb.Binding.Name, eb.Binding.Durable, eb.Binding.AutoDelete, eb.Binding.Exclusive, eb.Binding.NoWait, eb.Binding.Args); err != nil {
+		return fmt.Errorf("MQ: Declare queue(%s) failed, %v", eb.Binding.Name, err)
+	}
+	//channel跟exchange绑定
+	if err := ch.QueueBind(eb.Binding.Name, eb.Binding.RouteKey, ex.Name, eb.Binding.NoWait, eb.Binding.Args); err != nil {
+		return fmt.Errorf("MQ: Bind exchange(%s) <--> queue(%s) failed, %v", ex.Name, eb.Binding.Name, err)
 	}
 	return nil
 }
