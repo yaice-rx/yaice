@@ -149,8 +149,6 @@ func (m *MsgQueue) Consumer(name string, autoAck bool) error {
 			if m.receiver(d.Body) {
 				d.Ack(true)
 			}
-			log.Printf("Received a message: %s", d.Body)
-			fmt.Println(d.Body)
 		}
 	}()
 	<-m.receiverClose
