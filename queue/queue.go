@@ -64,9 +64,9 @@ func (m *MsgQueue) Open() (mq *MsgQueue, err error) {
 
 	m.state = StateOpened
 	m.stopC = make(chan struct{})
+	m.receiverClose = make(chan bool)
 	m.closeC = make(chan *amqp.Error, 1)
 	m.conn.NotifyClose(m.closeC)
-
 	go m.keepalive()
 
 	return m, nil
@@ -95,12 +95,9 @@ func (p *MsgQueue) SetExchangeBinds(eb *ExchangeBinds) bool {
 func (m *MsgQueue) Close() {
 	m.mutex.Lock()
 	m.receiverClose <- true
+	m.stopC <- struct{}{}
+	m.state = StateClosed
 	m.mutex.Unlock()
-	// wait done
-	for m.State() != StateClosed {
-		time.Sleep(time.Second)
-		m.state = StateClosed
-	}
 }
 
 func (m *MsgQueue) Producer(mandatory bool, body []byte) error {
@@ -138,10 +135,6 @@ func (m *MsgQueue) Consumer(name string, autoAck bool) error {
 	if err != nil {
 		return fmt.Errorf("MQ: Consumer(%s) consume queue(%s) failed, %v", m.exchangeBinds.Exch.Name, m.exchangeBinds.Binding.Name, err)
 	}
-	if err != nil {
-		fmt.Println(err)
-	}
-	m.receiverClose = make(chan bool)
 	// 启用协和处理消息
 	go func() {
 		for d := range msgs {
@@ -165,6 +158,9 @@ func (m *MsgQueue) State() uint8 {
 	return m.state
 }
 
+/**
+ * 监听
+ */
 func (m *MsgQueue) keepalive() {
 	select {
 	case <-m.stopC:
@@ -197,7 +193,6 @@ func (m *MsgQueue) keepalive() {
 			log.Printf("[INFO] MQ: Connection recover OK. Total try %d times\n", i+1)
 			return
 		}
-		log.Printf("[ERROR] MQ: Try to reconnect to MQ failed over maxRetry(%d), so exit.\n", maxRetry)
 	}
 }
 

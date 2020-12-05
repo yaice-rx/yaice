@@ -8,6 +8,7 @@ import (
 	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
+	"github.com/yaice-rx/yaice/queue"
 	"github.com/yaice-rx/yaice/router"
 	"reflect"
 	"strconv"
@@ -31,13 +32,14 @@ type server struct {
 	routerMgr  router.IRouter
 	clusterMgr cluster.IManager
 	configMgr  config.IConfig
+	MQ         *queue.MsgQueue
 	connEtcds  []string
 }
 
 /**
  * @param endpoints 集群管理中心连接节点
  */
-func NewServer(endpoints []string) IServer {
+func NewServer(endpoints []string, queueConnectUrl string) IServer {
 	server := &server{
 		routerMgr:  router.RouterMgr,
 		clusterMgr: cluster.ManagerMgr,
@@ -46,6 +48,8 @@ func NewServer(endpoints []string) IServer {
 	}
 	//启动集群服务
 	server.clusterMgr.Listen(server.connEtcds)
+	//消息中心初始化
+	server.MQ = queue.New(queueConnectUrl)
 	return server
 }
 
