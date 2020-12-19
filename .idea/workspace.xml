@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="bb4b37fb-5327-4b0d-9f90-8782ee50b6fa" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/.idea/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/modules.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/yaice.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/cluster/manager.go" beforeDir="false" afterPath="$PROJECT_DIR$/service/manager.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/config/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/queue/common.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/queue/queue.go" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/server.go" beforeDir="false" afterPath="$PROJECT_DIR$/server.go" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FavoritesManager">
+    <favorites_list name="yaice" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Go File" />
+      </list>
+    </option>
+  </component>
+  <component name="GOROOT" path="F:/GoLibary" />
+  <component name="Git.Settings">
+    <option name="PREVIOUS_COMMIT_AUTHORS">
+      <list>
+        <option value="yaice" />
+      </list>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="IgnoredFileRootStore">
+    <option name="generatedRoots">
+      <set>
+        <option value="F:\GameFrame\yaice\.idea" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectId" id="1VvLoGZ3v0pfVHv7NIn8kTCcWU3" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">
+    <property name="DefaultGoTemplateProperty" value="Go File" />
+    <property name="GO_FMT" value="true" />
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
+    <property name="WebServerToolWindowFactoryState" value="false" />
+    <property name="configurable.Global.GOPATH.is.expanded" value="true" />
+    <property name="configurable.Module.GOPATH.is.expanded" value="true" />
+    <property name="configurable.Project.GOPATH.is.expanded" value="true" />
+    <property name="go.gopath.indexing.explicitly.defined" value="true" />
+    <property name="go.import.settings.migrated" value="true" />
+    <property name="go.sdk.automatically.set" value="true" />
+    <property name="go.vendoring.notification.had.been.shown" value="true" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/queue" />
+    <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
+    <property name="nodejs_npm_path_reset_for_default_project" value="true" />
+    <property name="settings.editor.selected.configurable" value="editing.templates" />
+  </component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="F:\GameFrame\yaice\queue" />
+      <recent name="F:\GameFrame\yaice\queue\rmq" />
+      <recent name="F:\GameFrame\yaice" />
+      <recent name="F:\GameFrame\yaice\cluster\config" />
+    </key>
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="F:\GameFrame\yaice\queue" />
+      <recent name="F:\GameFrame\yaice" />
+      <recent name="F:\GameFrame\yaice\constant" />
+    </key>
+  </component>
+  <component name="ServiceViewManager">
+    <option name="viewStates">
+      <list>
+        <serviceView>
+          <treeState>
+            <expand />
+            <select />
+          </treeState>
+        </serviceView>
+      </list>
+    </option>
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="1" />
+  </component>
+  <component name="Vcs.Log.History.Properties">
+    <option name="COLUMN_ORDER">
+      <list>
+        <option value="0" />
+        <option value="2" />
+        <option value="3" />
+        <option value="1" />
+      </list>
+    </option>
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="1">
+          <value>
+            <State>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="COLUMN_ORDER" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="OPEN_TABS">
+      <set>
+        <option value="1" />
+      </set>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <ignored-roots>
+      <path value="$PROJECT_DIR$/src/github.com/coreos/etcd" />
+    </ignored-roots>
+    <MESSAGE value="修改端口监听请求" />
+    <MESSAGE value="更新网络底层：增加解包 封包功能，完善Conn" />
+    <MESSAGE value="修改解包Bug" />
+    <MESSAGE value="修改定时任务" />
+    <MESSAGE value="修改网络数据接收方式" />
+    <MESSAGE value="增加集群连接的功能" />
+    <MESSAGE value="增加数据库驱动。改动网络接口" />
+    <MESSAGE value="update 添加扩展方法" />
+    <MESSAGE value="update 增加集群管理的key" />
+    <MESSAGE value="update 管理连接" />
+    <MESSAGE value="ConnectManager" />
+    <MESSAGE value="添加获取唯一id的方法" />
+    <MESSAGE value="心跳处理" />
+    <MESSAGE value="处理连接超时问题" />
+    <MESSAGE value="处理消息问题" />
+    <MESSAGE value="处理Conn超时问题" />
+    <MESSAGE value="增加回调处理" />
+    <MESSAGE value="调整回调的处理节点" />
+    <MESSAGE value="调整消息接收处理channel" />
+    <MESSAGE value="将connect的管理踢出去，放外层逻辑处理" />
+    <MESSAGE value="原子操作" />
+    <MESSAGE value="修改连接方式，连接数限制" />
+    <MESSAGE value="修改扩展方法" />
+    <MESSAGE value="update" />
+    <MESSAGE value="yaice 增加rabbitmq处理" />
+    <option name="LAST_COMMIT_MESSAGE" value="yaice 增加rabbitmq处理" />
+  </component>
+  <component name="VgoProject">
+    <integration-enabled>true</integration-enabled>
+    <proxy>https://goproxy.cn/</proxy>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="676" y="373" key="#com.intellij.codeInsight.template.impl.EditVariableDialog" timestamp="1608019220703">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="676" y="373" key="#com.intellij.codeInsight.template.impl.EditVariableDialog/1920.218.1920.1040/0.0.1920.1040@0.0.1920.1040" timestamp="1608019220703" />
+    <state x="414" y="175" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1608106163178">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="414" y="175" key="#com.intellij.execution.impl.EditConfigurationsDialog/1920.218.1920.1040/0.0.1920.1040@0.0.1920.1040" timestamp="1608106163178" />
+    <state x="560" y="113" key="CommitChangelistDialog2" timestamp="1607150997011">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="560" y="113" key="CommitChangelistDialog2/0.0.1920.1040/1920.115.1920.1080@0.0.1920.1040" timestamp="1599480965250" />
+    <state x="2480" y="232" key="CommitChangelistDialog2/0.0.1920.1040/1920.115.1920.1080@1920.115.1920.1080" timestamp="1605790509783" />
+    <state x="560" y="113" key="CommitChangelistDialog2/1920.218.1920.1040/0.0.1920.1040@0.0.1920.1040" timestamp="1607150997011" />
+    <state x="92" y="89" width="1736" height="896" key="DiffContextDialog" timestamp="1607135731748">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="2012" y="207" width="1736" height="896" key="DiffContextDialog/0.0.1920.1040/1920.115.1920.1080@1920.115.1920.1080" timestamp="1605790485834" />
+    <state x="92" y="89" key="DiffContextDialog/1920.218.1920.1040/0.0.1920.1040@0.0.1920.1040" timestamp="1607135731748" />
+    <state x="846" y="206" key="FileChooserDialogImpl" timestamp="1606802524268">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="846" y="206" key="FileChooserDialogImpl/0.0.1920.1040/1920.115.1920.1080@0.0.1920.1040" timestamp="1601368466823" />
+    <state x="2766" y="329" key="FileChooserDialogImpl/0.0.1920.1040/1920.115.1920.1080@1920.115.1920.1080" timestamp="1602312303822" />
+    <state x="846" y="206" key="FileChooserDialogImpl/1920.218.1920.1040/0.0.1920.1040@0.0.1920.1040" timestamp="1606802524268" />
+    <state x="461" y="162" key="SettingsEditor" timestamp="1608020022017">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="461" y="162" key="SettingsEditor/1920.218.1920.1040/0.0.1920.1040@0.0.1920.1040" timestamp="1608020022017" />
+    <state x="552" y="253" key="Vcs.Push.Dialog.v2" timestamp="1607151003587">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="552" y="253" key="Vcs.Push.Dialog.v2/0.0.1920.1040/1920.115.1920.1080@0.0.1920.1040" timestamp="1599480978125" />
+    <state x="2472" y="378" key="Vcs.Push.Dialog.v2/0.0.1920.1040/1920.115.1920.1080@1920.115.1920.1080" timestamp="1605790516696" />
+    <state x="552" y="253" key="Vcs.Push.Dialog.v2/1920.218.1920.1040/0.0.1920.1040@0.0.1920.1040" timestamp="1607151003587" />
+    <state x="2012" y="207" width="1736" height="896" key="com.intellij.history.integration.ui.views.DirectoryHistoryDialog" timestamp="1599559042069">
+      <screen x="1920" y="115" width="1920" height="1080" />
+    </state>
+    <state x="2012" y="207" width="1736" height="896" key="com.intellij.history.integration.ui.views.DirectoryHistoryDialog/0.0.1920.1040/1920.115.1920.1080@1920.115.1920.1080" timestamp="1599559042069" />
+    <state x="2603" y="446" key="git4idea.merge.GitPullDialog" timestamp="1605170557803">
+      <screen x="1920" y="115" width="1920" height="1080" />
+    </state>
+    <state x="2603" y="446" key="git4idea.merge.GitPullDialog/0.0.1920.1040/1920.115.1920.1080@1920.115.1920.1080" timestamp="1605170557803" />
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup" timestamp="1607939379808">
+      <screen x="0" y="0" width="1920" height="1040" />
+    </state>
+    <state x="623" y="225" width="672" height="678" key="search.everywhere.popup/1920.218.1920.1040/0.0.1920.1040@0.0.1920.1040" timestamp="1607939379808" />
+  </component>
+</project>

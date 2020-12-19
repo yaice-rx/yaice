@@ -1,4 +1,4 @@
-package cluster
+package service
 
 import (
 	"context"
@@ -11,15 +11,15 @@ import (
 	"time"
 )
 
-const prefix = "yaice"
+const prefix = "etcd://"
 
 const ConnectTTL = 20
 
 type IManager interface {
 	Listen(endpoints []string) error
-	Set(path string, data config.IConfig) error
-	Get(path string) []config.IConfig
-	Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value config.IConfig))
+	Set(path string, data config.Config) error
+	Get(path string) []config.Config
+	Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value config.Config))
 	Close()
 }
 
@@ -54,9 +54,9 @@ func (s *manager) Listen(endpoints []string) error {
 	return nil
 }
 
-func (s *manager) Set(path string, data config.IConfig) error {
+func (s *manager) Set(path string, data config.Config) error {
 	var json = jsoniter.ConfigCompatibleWithStandardLibrary
-	jsonData, err := json.Marshal(data.(*config.Config))
+	jsonData, err := json.Marshal(data)
 	if err != nil {
 		log.AppLogger.Debug("ETCD 注册数据,序列化失败：" + err.Error())
 		return err
@@ -79,15 +79,15 @@ func (s *manager) Set(path string, data config.IConfig) error {
 	return nil
 }
 
-func (s *manager) Get(path string) []config.IConfig {
+func (s *manager) Get(path string) []config.Config {
 	resp, err := s.conn.Get(context.TODO(), s.prefix+"\\"+path, clientv3.WithPrefix())
 	if err != nil {
 		log.AppLogger.Debug("数据获取失败：" + err.Error())
 		return nil
 	}
-	configMap := []config.IConfig{}
+	configMap := []config.Config{}
 	for _, value := range s.readData(resp) {
-		conf := &config.Config{}
+		conf := config.Config{}
 		var json = jsoniter.ConfigCompatibleWithStandardLibrary
 		if err := json.Unmarshal(value, conf); err != nil {
 			log.AppLogger.Debug("序列化失败：" + err.Error())
@@ -99,13 +99,13 @@ func (s *manager) Get(path string) []config.IConfig {
 }
 
 //检测
-func (s *manager) Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value config.IConfig)) {
+func (s *manager) Watch(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value config.Config)) {
 	watcher := clientv3.NewWatcher(s.conn)
 	for {
 		rch := watcher.Watch(context.TODO(), s.prefix, clientv3.WithPrefix())
 		for response := range rch {
 			for _, event := range response.Events {
-				config := &config.Config{}
+				config := config.Config{}
 				var json = jsoniter.ConfigCompatibleWithStandardLibrary
 				json.Unmarshal(event.Kv.Value, config)
 				eventHandler(event.Type, event.Kv.Key, config)
