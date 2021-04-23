@@ -142,7 +142,9 @@ func (c *Conn) Start() {
 				func_(c)
 			}
 			if msgData == nil {
-				log.AppLogger.Info("network io read data err - 1:" + err.Error())
+				if err != nil {
+					log.AppLogger.Info("network io read data err - 1:" + err.Error())
+				}
 				break
 			}
 			//写入通道数据
