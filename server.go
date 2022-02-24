@@ -5,7 +5,6 @@ import (
 	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
-	"github.com/yaice-rx/yaice/queue"
 	"github.com/yaice-rx/yaice/router"
 )
 
@@ -16,17 +15,16 @@ type IServer interface {
 	//注册客户端路由
 	RegisterClientRouter(message proto.Message, handler func(conn network.IConn, content []byte))
 	//监听网络
-	NetworkListen(network string, startPort int, endPort int,packet network.IPacket, isAllowConnFunc func(conn interface{}) bool) int
+	NetworkListen(network string, startPort int, endPort int, packet network.IPacket, isAllowConnFunc func(conn interface{}) bool) int
 	//连接网络
-	NetworkDial(network string, address string,packet network.IPacket, options network.IOptions) network.IConn
+	NetworkDial(network string, address string, packet network.IPacket, options network.IOptions) network.IConn
 	//关闭
 	Close()
 }
 
 type Server struct {
-	routerMgr 	router.IRouter
-	queueMgr	*queue.MQ
-	conf		config.Config
+	routerMgr router.IRouter
+	conf      config.Config
 }
 
 /**
@@ -35,13 +33,11 @@ type Server struct {
  * @param  conf  配置文件
  * @return
  */
-func Run(conf  config.Config) IServer {
+func Run(conf config.Config) IServer {
 	server := &Server{
-		conf		:conf,
-		routerMgr	:router.RouterMgr,
-		queueMgr	:queue.New(conf.MsgQueueConnectURL),
+		conf:      conf,
+		routerMgr: router.RouterMgr,
 	}
-	server.queueMgr.Open()
 	return server
 }
 
@@ -61,7 +57,7 @@ func (s *Server) RegisterClientRouter(message proto.Message, handler func(conn n
  * @param func isAllowConnFunc  是否允许该连接是否连接，由上层逻辑通知，底层不予维护
  * @return int   < 0  代表启动服务出错。
  */
-func (s *Server) NetworkListen(network_ string, startPort int, endPort int,packet network.IPacket, isAllowConnFunc func(conn interface{}) bool) int {
+func (s *Server) NetworkListen(network_ string, startPort int, endPort int, packet network.IPacket, isAllowConnFunc func(conn interface{}) bool) int {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
@@ -82,7 +78,7 @@ func (s *Server) NetworkListen(network_ string, startPort int, endPort int,packe
  * @param address string 地址
  * @param options 最大连接次数
  */
-func (s *Server) NetworkDial(network_ string, address string,packet network.IPacket, options network.IOptions) network.IConn {
+func (s *Server) NetworkDial(network_ string, address string, packet network.IPacket, options network.IOptions) network.IConn {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
@@ -94,22 +90,6 @@ func (s *Server) NetworkDial(network_ string, address string,packet network.IPac
 		return clientMgr.Connect()
 	}
 	return nil
-}
-
-func (s *Server)MsgQueueProducer(name string) *queue.Producer{
-	mq,err := s.queueMgr.Producer(name)
-	if err != nil{
-		return nil
-	}
-	return mq
-}
-
-func (s *Server)MsgQueueConsumer(name string) *queue.Consumer{
-	mq,err := s.queueMgr.Consumer(name)
-	if err != nil{
-		return nil
-	}
-	return mq
 }
 
 /**
