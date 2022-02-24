@@ -117,6 +117,9 @@ func (c *Conn) Start() {
 			log.AppLogger.Info("conn It has been closed ... ")
 			return
 		}
+		if err := c.conn.SetReadDeadline(time.Now().Add(time.Minute*70)); err != nil {
+			return
+		}
 		//1 先读出流中的head部分
 		headData := make([]byte, c.pkg.GetHeadLen())
 		_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
@@ -138,18 +141,23 @@ func (c *Conn) Start() {
 			}
 			//解压网络数据包
 			msgData, err, func_ := c.pkg.Unpack(contentData)
+			if msgData == nil {
+				if err != nil{
+					log.AppLogger.Info("network io read data err - 1:" + err.Error())
+				}
+				continue
+			}
 			if func_ != nil {
 				func_(c)
-			}
-			if msgData == nil {
-				log.AppLogger.Info("network io read data err - 1:" + err.Error())
-				break
 			}
 			//写入通道数据
 			c.receiveQueue <- network.TransitData{
 				MsgId: msgData.GetMsgId(),
 				Data:  msgData.GetData(),
 			}
+		}
+		if err := c.conn.SetReadDeadline(time.Time{}); err != nil {
+			return
 		}
 	}
 }

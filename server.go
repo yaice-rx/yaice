@@ -1,43 +1,51 @@
 package yaice
 
 import (
+	"context"
+	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/golang/protobuf/proto"
+	"github.com/yaice-rx/yaice/cluster"
 	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/router"
+	"reflect"
+	"strconv"
 )
 
 //服务运行状态
 var shutdown = make(chan bool, 1)
 
 type IServer interface {
-	//注册客户端路由
-	RegisterClientRouter(message proto.Message, handler func(conn network.IConn, content []byte))
-	//监听网络
-	NetworkListen(network string, startPort int, endPort int, packet network.IPacket, isAllowConnFunc func(conn interface{}) bool) int
-	//连接网络
-	NetworkDial(network string, address string, packet network.IPacket, options network.IOptions) network.IConn
-	//关闭
+	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
+	RegisterServeNodeData() error
+	GetServeNodeData(path string) []config.IConfig
+	WatchServeNodeData(eventHandler func(isAdd mvccpb.Event_EventType, key []byte, value config.IConfig))
+	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int
+	Dial(packet network.IPacket, network string, address string, options network.IOptions) network.IConn
 	Close()
 }
 
-type Server struct {
-	routerMgr router.IRouter
-	conf      config.Config
+type server struct {
+	cancel     context.CancelFunc
+	routerMgr  router.IRouter
+	clusterMgr cluster.IManager
+	configMgr  config.IConfig
+	connEtcds  []string
 }
 
 /**
- * @Author Yaice
- * @Date 2020/12/15 15:16
- * @param  conf  配置文件
- * @return
+ * @param endpoints 集群管理中心连接节点
  */
-func Run(conf config.Config) IServer {
-	server := &Server{
-		conf:      conf,
-		routerMgr: router.RouterMgr,
+func NewServer(endpoints []string) IServer {
+	server := &server{
+		routerMgr:  router.RouterMgr,
+		clusterMgr: cluster.ManagerMgr,
+		configMgr:  config.ConfInstance(),
+		connEtcds:  endpoints,
 	}
+	//启动集群服务
+	server.clusterMgr.Listen(server.connEtcds)
 	return server
 }
 
@@ -45,30 +53,36 @@ func Run(conf config.Config) IServer {
  * @param message 消息传递结构体
  * @param handler func(conn network.IConn, content []byte) 网络调用函数
  */
-func (s *Server) RegisterClientRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {
+func (s *server) AddRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {
 	s.routerMgr.AddRouter(message, handler)
 }
 
+func (s *server) RegisterMQProto(mqProto interface{}, handler func(content []byte)) {
+	val := reflect.Indirect(reflect.ValueOf(mqProto))
+	s.routerMgr.RegisterMQ(val.Field(0).Type().Name(), handler)
+}
+
 /**
- * @param string network 网络连接方式
- * @param int startPort 监听端口范围开始
- * @param int endPort 监听端口范围结束
- * @param network.IPacket  packet 网络包的协议处理方式，如果传输为nil，则采用默认的方式
- * @param func isAllowConnFunc  是否允许该连接是否连接，由上层逻辑通知，底层不予维护
- * @return int   < 0  代表启动服务出错。
+ * @param config 服务参数配置
  */
-func (s *Server) NetworkListen(network_ string, startPort int, endPort int, packet network.IPacket, isAllowConnFunc func(conn interface{}) bool) int {
-	if packet == nil {
-		packet = tcp.NewPacket()
-	}
-	switch network_ {
-	case "kcp":
-		break
-	case "tcp", "tcp4", "tcp6":
-		serverMgr := tcp.NewServer()
-		return serverMgr.Listen(packet, startPort, endPort, isAllowConnFunc)
-	}
-	return 0
+func (s *server) RegisterServeNodeData() error {
+	return s.clusterMgr.Set(s.configMgr.GetServerGroup()+"\\"+s.configMgr.GetTypeId()+"\\"+strconv.FormatUint(s.configMgr.GetPid(), 10), s.configMgr)
+}
+
+/**
+ * @param path 获取服务的路径
+ * @return 返回多个服务配置
+ */
+func (s *server) GetServeNodeData(path string) []config.IConfig {
+	return s.clusterMgr.Get(path)
+}
+
+/**
+ * @func  监听来自集群服务的通知
+ * @param 异步调用 func(回调事件，回调函数)
+ */
+func (s *server) WatchServeNodeData(eventHandler func(eventType mvccpb.Event_EventType, key []byte, value config.IConfig)) {
+	go s.clusterMgr.Watch(eventHandler)
 }
 
 /**
@@ -78,7 +92,7 @@ func (s *Server) NetworkListen(network_ string, startPort int, endPort int, pack
  * @param address string 地址
  * @param options 最大连接次数
  */
-func (s *Server) NetworkDial(network_ string, address string, packet network.IPacket, options network.IOptions) network.IConn {
+func (s *server) Dial(packet network.IPacket, network_ string, address string, options network.IOptions) network.IConn {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
@@ -93,7 +107,29 @@ func (s *Server) NetworkDial(network_ string, address string, packet network.IPa
 }
 
 /**
+ * @param network.IPacket  packet 网络包的协议处理方式，如果传输为nil，则采用默认的方式
+ * @param string network 网络连接方式
+ * @param int startPort 监听端口范围开始
+ * @param int endPort 监听端口范围结束
+ * @param func isAllowConnFunc  限制连接数，超过连接数的时候，由上层逻辑通知，底层不予维护
+ */
+func (s *server) Listen(packet network.IPacket, network_ string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int {
+	if packet == nil {
+		packet = tcp.NewPacket()
+	}
+	switch network_ {
+	case "kcp":
+		break
+	case "tcp", "tcp4", "tcp6":
+		serverMgr := tcp.NewServer()
+		return serverMgr.Listen(packet, startPort, endPort, isAllowConnFunc)
+	}
+	return 0
+}
+
+/**
  * 关闭集群服务
  */
-func (s *Server) Close() {
+func (s *server) Close() {
+	s.clusterMgr.Close()
 }
