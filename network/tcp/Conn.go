@@ -2,16 +2,17 @@ package tcp
 
 import (
 	"errors"
+	"io"
+	"net"
+	"sync/atomic"
+	"time"
+
 	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/router"
 	"github.com/yaice-rx/yaice/utils"
 	"go.uber.org/zap"
-	"io"
-	"net"
-	"sync/atomic"
-	"time"
 )
 
 type Conn struct {
@@ -35,8 +36,8 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 		conn:         conn,
 		pkg:          pkg,
 		isClosed:     false,
-		receiveQueue: make(chan network.TransitData, 10),
-		sendQueue:    make(chan []byte, 10),
+		receiveQueue: make(chan network.TransitData, 5000),
+		sendQueue:    make(chan []byte, 5000),
 		times:        time.Now().Unix(),
 	}
 	go func() {
@@ -117,7 +118,7 @@ func (c *Conn) Start() {
 			log.AppLogger.Info("conn It has been closed ... ")
 			return
 		}
-		if err := c.conn.SetReadDeadline(time.Now().Add(time.Minute*70)); err != nil {
+		if err := c.conn.SetReadDeadline(time.Now().Add(time.Minute * 70)); err != nil {
 			return
 		}
 		//1 先读出流中的head部分
@@ -142,7 +143,7 @@ func (c *Conn) Start() {
 			//解压网络数据包
 			msgData, err, func_ := c.pkg.Unpack(contentData)
 			if msgData == nil {
-				if err != nil{
+				if err != nil {
 					log.AppLogger.Info("network io read data err - 1:" + err.Error())
 				}
 				continue
