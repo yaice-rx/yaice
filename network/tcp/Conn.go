@@ -26,6 +26,7 @@ type Conn struct {
 	receiveQueue chan network.TransitData
 	serve        interface{}
 	data         interface{}
+	isPos		 int64
 }
 
 func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ network.ServeType) network.IConn {
@@ -99,7 +100,7 @@ func (c *Conn) Send(message proto.Message) error {
 		log.AppLogger.Info("send msg(proto) channel It has been closed ... ")
 		return errors.New("send msg(proto) channel It has been closed ... ")
 	}
-	c.sendQueue <- c.pkg.Pack(network.TransitData{protoId, data})
+	c.sendQueue <- c.pkg.Pack(network.TransitData{protoId, data},c.isPos)
 	return nil
 }
 
@@ -151,6 +152,7 @@ func (c *Conn) Start() {
 			if func_ != nil {
 				func_(c)
 			}
+			c.isPos = msgData.GetIsPos();
 			//写入通道数据
 			c.receiveQueue <- network.TransitData{
 				MsgId: msgData.GetMsgId(),
