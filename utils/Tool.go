@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 )
 
 var mutex sync.Mutex
@@ -165,9 +166,29 @@ func GetGid() int64 {
 	}
 	return int64(id)
 }
+func getMachineID() (uint16, error) {
+	var machineID uint16 = 6
+	return machineID, nil
+}
+
+func checkMachineID(machineID uint16) bool {
+	existsMachines := []uint16{1, 2, 3, 4, 5}
+	for _, v := range existsMachines {
+		if v == machineID {
+			return false
+		}
+	}
+	return true
+}
 
 func GenSonyflake() uint64 {
-	flake := sonyflake.NewSonyflake(sonyflake.Settings{})
+	t, _ := time.Parse("2006-01-02", "2021-01-01")
+	settings := sonyflake.Settings{
+		StartTime:      t,
+		MachineID:      getMachineID,
+		CheckMachineID: checkMachineID,
+	}
+	flake := sonyflake.NewSonyflake(settings)
 	val, err := flake.NextID()
 	if err != nil {
 		return 0
