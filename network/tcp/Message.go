@@ -18,3 +18,8 @@ func (this *Message) GetMsgId() int32 {
 func (this *Message) GetData() []byte {
 	return this.Data
 }
+
+//获取消息内容
+func (this *Message) GetIsPos() int64 {
+	return 0
+}

@@ -24,7 +24,7 @@ func (dp *packet) GetHeadLen() uint32 {
 }
 
 //封包
-func (dp *packet) Pack(msg network.TransitData) []byte {
+func (dp *packet) Pack(msg network.TransitData,ispos int64) []byte {
 	msgLength := int32(len(msg.Data) + ConstMsgIdLen)
 	dataLen := utils.IntToBytes(msgLength)
 	dataId := utils.IntToBytes(msg.MsgId)
