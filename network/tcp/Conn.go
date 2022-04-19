@@ -33,7 +33,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 	conn_ := &Conn{
 		type_:        type_,
 		serve:        serve,
-		guid:         utils.GenSonyflake(),
+		guid:         utils.GenSonyflakeToo(),
 		conn:         conn,
 		pkg:          pkg,
 		isClosed:     false,
@@ -47,7 +47,12 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 			//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
 			if err != nil && !conn_.isClosed && type_ == network.Serve_Client {
 				if conn_.serve.(*TCPClient) != nil {
-					conn_.conn = conn_.serve.(*TCPClient).ReConnect().GetConn().(*net.TCPConn)
+					ic := conn_.serve.(*TCPClient).ReConnect()
+					if(ic != nil){
+						conn_.conn = ic.GetConn().(*net.TCPConn)
+					}else{
+						return
+					}
 				}
 				log.AppLogger.Info("发送参数错误：" + err.Error())
 			}

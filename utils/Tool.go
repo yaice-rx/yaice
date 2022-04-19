@@ -6,15 +6,15 @@ import (
 	"encoding/binary"
 	"encoding/csv"
 	"fmt"
-	"github.com/golang/protobuf/proto"
-	"github.com/sony/sonyflake"
 	"io"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/sony/sonyflake"
 )
 
 var mutex sync.Mutex
@@ -166,29 +166,19 @@ func GetGid() int64 {
 	}
 	return int64(id)
 }
-func getMachineID() (uint16, error) {
-	var machineID uint16 = 6
-	return machineID, nil
-}
 
-func checkMachineID(machineID uint16) bool {
-	existsMachines := []uint16{1, 2, 3, 4, 5}
-	for _, v := range existsMachines {
-		if v == machineID {
-			return false
-		}
+func GenSonyflakeToo() uint64 {
+	flake, err := CreateSnowflakeWorker(11, 11)
+	if err != nil {
+		return 0
 	}
-	return true
+	nextid := flake.NextId()
+	//fmt.Printf("nextid=============%d\n", nextid)
+	return nextid
 }
 
 func GenSonyflake() uint64 {
-	t, _ := time.Parse("2006-01-02", "2021-01-01")
-	settings := sonyflake.Settings{
-		StartTime:      t,
-		MachineID:      getMachineID,
-		CheckMachineID: checkMachineID,
-	}
-	flake := sonyflake.NewSonyflake(settings)
+	flake := sonyflake.NewSonyflake(sonyflake.Settings{})
 	val, err := flake.NextID()
 	if err != nil {
 		return 0
