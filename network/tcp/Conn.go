@@ -43,11 +43,18 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 	}
 	go func() {
 		for data := range conn_.sendQueue {
-			_, err := conn_.conn.Write(data)
-			//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
-			if err != nil {
-				log.AppLogger.Info("发送参数错误：" + err.Error())
-			}
+			LOOP:
+				_, err := conn_.conn.Write(data)
+				//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
+				if err != nil {
+					log.AppLogger.Info("发送参数错误：" + err.Error())
+					if conn_.serve.(*TCPClient).dialRetriesCount <= conn_.serve.(*TCPClient).opt.GetMaxRetires(){
+						conn_.serve.(*TCPClient).dialRetriesCount += 1
+						goto LOOP
+					}else{
+						conn_.serve.(*TCPClient).Close()
+					}
+				}
 		}
 	}()
 	go func() {
@@ -116,6 +123,7 @@ func (c *Conn) Start() {
 			log.AppLogger.Info("conn It has been closed ... ")
 			return
 		}
+		//读取限时
 		if err := c.conn.SetReadDeadline(time.Now().Add(time.Minute * 70)); err != nil {
 			return
 		}
