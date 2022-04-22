@@ -22,13 +22,13 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway v1.12.1 // indirect
 	github.com/jonboulle/clockwork v0.1.0 // indirect
 	github.com/json-iterator/go v1.1.9
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/prometheus/client_golang v1.3.0 // indirect
 	github.com/soheilhy/cmux v0.1.4 // indirect
-	github.com/sony/sonyflake v1.0.0
 	github.com/tmc/grpc-websocket-proxy v0.0.0-20190109142713-0ad062ec5ee5 // indirect
 	github.com/xiang90/probing v0.0.0-20190116061207-43a291ad63a2 // indirect
 	go.etcd.io/bbolt v1.3.3 // indirect
-	go.uber.org/zap v1.13.0
+	go.uber.org/zap v1.10.0
 	golang.org/x/net v0.0.0-20200301022130-244492dfa37a // indirect
 	golang.org/x/sys v0.0.0-20200302150141-5c8b2ff67527 // indirect
 	golang.org/x/text v0.3.2 // indirect

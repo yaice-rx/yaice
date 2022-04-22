@@ -20,13 +20,13 @@ type Conn struct {
 	isClosed     bool
 	guid         uint64
 	times        int64
-	sendQueue    chan []byte
 	pkg          network.IPacket
 	conn         *net.TCPConn
-	receiveQueue chan network.TransitData
 	serve        interface{}
 	data         interface{}
-	isPos		 int64
+	isPos        int64
+	sendQueue    chan []byte
+	receiveQueue chan network.TransitData
 }
 
 func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ network.ServeType) network.IConn {
@@ -45,15 +45,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 		for data := range conn_.sendQueue {
 			_, err := conn_.conn.Write(data)
 			//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
-			if err != nil && !conn_.isClosed && type_ == network.Serve_Client {
-				if conn_.serve.(*TCPClient) != nil {
-					ic := conn_.serve.(*TCPClient).ReConnect()
-					if(ic != nil){
-						conn_.conn = ic.GetConn().(*net.TCPConn)
-					}else{
-						return
-					}
-				}
+			if err != nil {
 				log.AppLogger.Info("发送参数错误：" + err.Error())
 			}
 		}
@@ -105,7 +97,7 @@ func (c *Conn) Send(message proto.Message) error {
 		log.AppLogger.Info("send msg(proto) channel It has been closed ... ")
 		return errors.New("send msg(proto) channel It has been closed ... ")
 	}
-	c.sendQueue <- c.pkg.Pack(network.TransitData{protoId, data},c.isPos)
+	c.sendQueue <- c.pkg.Pack(network.TransitData{protoId, data}, c.isPos)
 	return nil
 }
 
@@ -157,7 +149,7 @@ func (c *Conn) Start() {
 			if func_ != nil {
 				func_(c)
 			}
-			c.isPos = msgData.GetIsPos();
+			c.isPos = msgData.GetIsPos()
 			//写入通道数据
 			c.receiveQueue <- network.TransitData{
 				MsgId: msgData.GetMsgId(),

@@ -14,7 +14,6 @@ import (
 	"sync"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/sony/sonyflake"
 )
 
 var mutex sync.Mutex
@@ -175,13 +174,4 @@ func GenSonyflakeToo() uint64 {
 	nextid := flake.NextId()
 	//fmt.Printf("nextid=============%d\n", nextid)
 	return nextid
-}
-
-func GenSonyflake() uint64 {
-	flake := sonyflake.NewSonyflake(sonyflake.Settings{})
-	val, err := flake.NextID()
-	if err != nil {
-		return 0
-	}
-	return val
 }

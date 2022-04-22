@@ -1,6 +1,7 @@
 package tcp
 
 import (
+	"fmt"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"go.uber.org/zap"
@@ -12,7 +13,7 @@ type TCPClient struct {
 	type_            network.ServeType
 	dialRetriesCount int32
 	address          string
-	conn             *net.TCPConn
+	conn             network.IConn
 	packet           network.IPacket
 	opt              network.IOptions
 	connStateFunc    func(conn network.IConn)
@@ -36,23 +37,23 @@ func (c *TCPClient) Connect() network.IConn {
 		return nil
 	}
 LOOP:
-	c.conn, err = net.DialTCP("tcp", nil, tcpAddr)
+	tcpConn, err := net.DialTCP("tcp", nil, tcpAddr)
 	if err != nil {
 		time.Sleep(3 * time.Second)
 		if c.opt.GetMaxRetires() < c.dialRetriesCount {
 			log.AppLogger.Error("网络重连失败:"+err.Error(), zap.String("function", "network.tcp.Client.Connect"))
 			return nil
 		}
-		log.AppLogger.Error("重连失败：" + err.Error())
+		log.AppLogger.Warn(fmt.Sprintf("第{%d}网络重连中", c.dialRetriesCount))
 		c.dialRetriesCount += 1
 		goto LOOP
 	}
 	//连接上的时候，重置连接次数
 	c.dialRetriesCount = 0
-	conn := NewConn(c, c.conn, c.packet, network.Serve_Client)
+	c.conn = NewConn(c, tcpConn, c.packet, network.Serve_Client)
 	//读取网络通道数据
-	go conn.Start()
-	return conn
+	go c.conn.Start()
+	return c.conn
 }
 
 func (c *TCPClient) ReConnect() network.IConn {
