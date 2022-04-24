@@ -17,20 +17,17 @@ type TCPClient struct {
 	conn             network.IConn
 	packet           network.IPacket
 	opt              network.IOptions
-	connStateFunc    func(conn network.IConn)
-	state 			 int32
+	reConnCallBackFunc    	 func(conn network.IConn)
 }
 
-
-
-func NewClient(packet network.IPacket, address string, opt network.IOptions) network.IClient {
+func NewClient(packet network.IPacket, address string, opt network.IOptions,reConnCallBackFunc func(conn network.IConn)) network.IClient {
 	c := &TCPClient{
 		type_:            network.Serve_Client,
 		address:          address,
 		packet:           packet,
 		opt:              opt,
 		dialRetriesCount: 0,
-		state:1,
+		reConnCallBackFunc:reConnCallBackFunc,
 	}
 	return c
 }
@@ -67,6 +64,6 @@ func (c *TCPClient) ReConnect() network.IConn {
 
 func (c *TCPClient) Close() {
 	//设置当前客户端的状态
-	c.state = 0
+	c.reConnCallBackFunc(c.conn)
 	c.conn.Close()
 }
