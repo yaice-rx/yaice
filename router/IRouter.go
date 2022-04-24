@@ -1,8 +1,8 @@
 package router
 
 import (
-	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/network"
+	"google.golang.org/protobuf/proto"
 )
 
 type IRouter interface {

@@ -6,14 +6,13 @@ import (
 	"encoding/binary"
 	"encoding/csv"
 	"fmt"
+	"google.golang.org/protobuf/proto"
 	"io"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
-
-	"github.com/golang/protobuf/proto"
 )
 
 var mutex sync.Mutex
@@ -79,7 +78,7 @@ func ProtocalNumber(replacement string) int32 {
 //获取协议名称
 func GetProtoName(t proto.Message) string {
 	x := proto.MessageName(t)
-	proto_ := strings.Split(x, ".")
+	proto_ := strings.Split(string(x), ".")
 	if len(proto_) > 0 {
 		return proto_[1]
 	} else {

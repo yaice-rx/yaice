@@ -1,9 +1,9 @@
 package router
 
 import (
-	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/utils"
+	"google.golang.org/protobuf/proto"
 	"sync"
 )
 
