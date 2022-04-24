@@ -2,17 +2,16 @@ package tcp
 
 import (
 	"errors"
-	"io"
-	"net"
-	"sync/atomic"
-	"time"
-
-	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/router"
 	"github.com/yaice-rx/yaice/utils"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/proto"
+	"io"
+	"net"
+	"sync/atomic"
+	"time"
 )
 
 type Conn struct {
