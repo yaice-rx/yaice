@@ -46,16 +46,13 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 			LOOP:
 				_, err := conn_.conn.Write(data)
 				//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
-				if err != nil {
-					log.AppLogger.Info("发送参数错误：" + err.Error())
-					if conn_.serve.(*TCPClient).dialRetriesCount <= conn_.serve.(*TCPClient).opt.GetMaxRetires(){
-						conn_.serve.(*TCPClient).dialRetriesCount += 1
-						goto LOOP
-					}else{
-						conn_.serve.(*TCPClient).Close()
-					}
-				}else{
+				if conn_.serve.(*TCPClient).dialRetriesCount > conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
+					conn_.serve.(*TCPClient).Close()
 					log.AppLogger.Info("发送失败，原因：" + err.Error())
+				}
+				if conn_.serve.(*TCPClient).dialRetriesCount <= conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
+					conn_.serve.(*TCPClient).dialRetriesCount += 1
+					goto LOOP
 				}
 		}
 	}()

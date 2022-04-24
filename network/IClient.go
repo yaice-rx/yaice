@@ -1,6 +1,6 @@
 package network
 
 type IClient interface {
-	Connect() IConn
+	Connect() IClient
 	Close()
 }
