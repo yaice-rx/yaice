@@ -2,6 +2,7 @@ package tcp
 
 import (
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"go.uber.org/zap"
@@ -20,6 +21,8 @@ type TCPClient struct {
 	connStateFunc    func(conn network.IConn)
 	state 			 int32
 }
+
+
 
 func NewClient(packet network.IPacket, address string, opt network.IOptions) network.IClient {
 	c := &TCPClient{
@@ -57,6 +60,14 @@ LOOP:
 	//读取网络通道数据
 	go c.conn.Start()
 	return c
+}
+
+func (c *TCPClient) Send(message proto.Message) error {
+	return c.conn.Send(message)
+}
+
+func (c *TCPClient) SendByte(message []byte) error {
+	return c.conn.SendByte(message)
 }
 
 func (c *TCPClient) ReConnect() network.IClient {
