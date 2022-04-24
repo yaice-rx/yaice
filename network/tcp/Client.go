@@ -2,7 +2,6 @@ package tcp
 
 import (
 	"fmt"
-	"github.com/golang/protobuf/proto"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
 	"go.uber.org/zap"
@@ -36,7 +35,7 @@ func NewClient(packet network.IPacket, address string, opt network.IOptions) net
 	return c
 }
 
-func (c *TCPClient) Connect() network.IClient {
+func (c *TCPClient) Connect() network.IConn {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", c.address)
 	if err != nil {
 		log.AppLogger.Error("网络地址序列化失败:"+err.Error(), zap.String("function", "network.tcp.Client.Connect"))
@@ -59,18 +58,10 @@ LOOP:
 	c.conn = NewConn(c, tcpConn, c.packet, network.Serve_Client)
 	//读取网络通道数据
 	go c.conn.Start()
-	return c
+	return c.conn
 }
 
-func (c *TCPClient) Send(message proto.Message) error {
-	return c.conn.Send(message)
-}
-
-func (c *TCPClient) SendByte(message []byte) error {
-	return c.conn.SendByte(message)
-}
-
-func (c *TCPClient) ReConnect() network.IClient {
+func (c *TCPClient) ReConnect() network.IConn {
 	return c.Connect()
 }
 
