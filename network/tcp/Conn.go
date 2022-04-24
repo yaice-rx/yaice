@@ -54,6 +54,8 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 					}else{
 						conn_.serve.(*TCPClient).Close()
 					}
+				}else{
+					log.AppLogger.Info("发送失败，原因：" + err.Error())
 				}
 		}
 	}()
