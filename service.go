@@ -24,17 +24,16 @@ type service struct {
 	cancel     context.CancelFunc
 	routerMgr  router.IRouter
 	configMgr  config.IConfig
+	ServiceType int
 }
-
 /**
  * @param endpoints 集群管理中心连接节点
  */
 func NewService() IService {
-	server := &service{
+	return &service{
 		routerMgr:  router.RouterMgr,
 		configMgr:  config.ConfInstance(),
 	}
-	return server
 }
 
 /**
@@ -90,6 +89,7 @@ func (s *service) Listen(packet network.IPacket, network_ string, startPort int,
 	}
 	return 0
 }
+
 
 /**
  * 关闭集群服务

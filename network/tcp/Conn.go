@@ -40,28 +40,30 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 		sendQueue:    make(chan []byte, 5000),
 		times:        time.Now().Unix(),
 	}
-	go func() {
+	go func(conn_ *Conn) {
 		for data := range conn_.sendQueue {
 			LOOP:
 				_, err := conn_.conn.Write(data)
 				//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
-				if conn_.serve.(*TCPClient).dialRetriesCount > conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
-					conn_.serve.(*TCPClient).Close()
-					log.AppLogger.Info("发送失败，原因：" + err.Error())
-				}
-				if conn_.serve.(*TCPClient).dialRetriesCount <= conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
-					conn_.serve.(*TCPClient).dialRetriesCount += 1
-					goto LOOP
+				if conn_.type_ == network.Serve_Client{
+					if  conn_.serve.(*TCPClient).dialRetriesCount > conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
+						conn_.serve.(*TCPClient).Close()
+						log.AppLogger.Info("发送失败，原因：" + err.Error())
+					}
+					if conn_.serve.(*TCPClient).dialRetriesCount <= conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
+						conn_.serve.(*TCPClient).dialRetriesCount += 1
+						goto LOOP
+					}
 				}
 		}
-	}()
-	go func() {
+	}(conn_)
+	go func(conn_ *Conn) {
 		for data := range conn_.receiveQueue {
 			if data.MsgId != 0 {
 				router.RouterMgr.ExecRouterFunc(conn_, data)
 			}
 		}
-	}()
+	}(conn_)
 	return conn_
 }
 
@@ -70,12 +72,12 @@ func (c *Conn) Close() {
 	if c.isClosed == true {
 		return
 	}
+	//设置当前的句柄为关闭状态
+	c.isClosed = true
 	if c.type_ == network.Serve_Server {
 		//断开连接减少对应的连接
 		atomic.AddInt32(&c.serve.(*Server).connCount, int32(-1))
 	}
-	//设置当前的句柄为关闭状态
-	c.isClosed = true
 	//关闭接收通道
 	close(c.receiveQueue)
 	//关闭发送通道
@@ -131,6 +133,10 @@ func (c *Conn) Start() {
 		if err != nil {
 			if err != io.EOF {
 				log.AppLogger.Info("network io read data err:" + err.Error())
+				if c.type_ == network.Serve_Client {
+					c.serve.(*TCPClient).Close()
+				}
+				return
 			}
 			break
 		}

@@ -54,7 +54,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, isAl
 				go conn.Start()
 			}
 		}()
-		portData := <-port
+		portData := <- port
 		if portData > 0 {
 			return portData
 		}
