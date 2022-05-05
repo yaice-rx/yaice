@@ -52,7 +52,7 @@ LOOP:
 	}
 	//连接上的时候，重置连接次数
 	c.dialRetriesCount = 0
-	c.conn = NewConn(c, tcpConn, c.packet, network.Serve_Client)
+	c.conn = NewConn(c, tcpConn, c.packet, c.opt, network.Serve_Client)
 	//读取网络通道数据
 	go c.conn.Start()
 	return c.conn

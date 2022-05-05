@@ -26,9 +26,10 @@ type Conn struct {
 	isPos        int64
 	sendQueue    chan []byte
 	receiveQueue chan network.TransitData
+	opt network.IOptions
 }
 
-func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ network.ServeType) network.IConn {
+func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, opt network.IOptions, type_ network.ServeType) network.IConn {
 	conn_ := &Conn{
 		type_:        type_,
 		serve:        serve,
@@ -39,6 +40,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, type_ ne
 		receiveQueue: make(chan network.TransitData, 5000),
 		sendQueue:    make(chan []byte, 5000),
 		times:        time.Now().Unix(),
+		opt: opt,
 	}
 	go func(conn_ *Conn) {
 		for data := range conn_.sendQueue {
@@ -172,4 +174,12 @@ func (c *Conn) Start() {
 			return
 		}
 	}
+}
+
+func (c *Conn) GetCreateTime() int64 {
+	return c.times
+}
+
+func (c *Conn) GetOptions() network.IOptions {
+	return c.opt
 }

@@ -50,7 +50,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, isAl
 					}
 				}
 				atomic.AddInt32(&s.connCount, 1)
-				conn := NewConn(s, tcpConn, packet, network.Serve_Server)
+				conn := NewConn(s, tcpConn, packet,nil, network.Serve_Server)
 				go conn.Start()
 			}
 		}()
