@@ -10,6 +10,7 @@ const (
 type IOptions interface {
 	GetMaxRetires() int32
 	GetTimeMills() int64
+	GetData() interface{}
 }
 
 type Options struct {
