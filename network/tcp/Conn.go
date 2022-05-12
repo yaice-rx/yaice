@@ -149,7 +149,7 @@ func (c *Conn) Start() {
 			}
 			//1 先读出流中的head部分
 			headData := make([]byte, c.pkg.GetHeadLen())
-			_, err := io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
+			_, err := io.ReadAtLeast(c.conn, headData[:4], 4)//io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
 			if err != nil {
 				if err != io.EOF {
 					log.AppLogger.Info("network io read data err:" + err.Error())
