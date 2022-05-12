@@ -1,6 +1,7 @@
 package tcp
 
 import (
+	"context"
 	"github.com/yaice-rx/yaice/network"
 	"net"
 	"strconv"
@@ -13,13 +14,19 @@ type Server struct {
 	type_     network.ServeType
 	connCount int32
 	listener  *net.TCPListener
+	cancel  context.CancelFunc
+	ctx    context.Context
 }
 
 func NewServer() network.IServer {
-	return &Server{
+	s := &Server{
 		type_:     network.Serve_Server,
 		connCount: 0,
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	s.cancel = cancel
+	s.ctx = ctx
+	return s
 }
 
 func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int {
@@ -50,7 +57,7 @@ func (s *Server) Listen(packet network.IPacket, startPort int, endPort int, isAl
 					}
 				}
 				atomic.AddInt32(&s.connCount, 1)
-				conn := NewConn(s, tcpConn, packet,nil, network.Serve_Server)
+				conn := NewConn(s, tcpConn, packet,nil, network.Serve_Server,s.ctx,s.cancel)
 				go conn.Start()
 			}
 		}()

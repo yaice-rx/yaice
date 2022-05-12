@@ -1,6 +1,7 @@
 package tcp
 
 import (
+	"context"
 	"fmt"
 	"github.com/yaice-rx/yaice/log"
 	"github.com/yaice-rx/yaice/network"
@@ -17,6 +18,8 @@ type TCPClient struct {
 	conn             network.IConn
 	packet           network.IPacket
 	opt              network.IOptions
+	ctx 		     context.Context
+	cancel 		     context.CancelFunc
 	reConnCallBackFunc    	 func(conn network.IConn)
 }
 
@@ -29,6 +32,9 @@ func NewClient(packet network.IPacket, address string, opt network.IOptions,reCo
 		dialRetriesCount: 0,
 		reConnCallBackFunc:reConnCallBackFunc,
 	}
+	ctx, cancel := context.WithCancel(context.Background())
+	c.ctx = ctx
+	c.cancel = cancel
 	return c
 }
 
@@ -52,7 +58,7 @@ LOOP:
 	}
 	//连接上的时候，重置连接次数
 	c.dialRetriesCount = 0
-	c.conn = NewConn(c, tcpConn, c.packet, c.opt, network.Serve_Client)
+	c.conn = NewConn(c, tcpConn, c.packet, c.opt, network.Serve_Client,c.ctx,c.cancel)
 	//读取网络通道数据
 	go c.conn.Start()
 	return c.conn
@@ -63,6 +69,7 @@ func (c *TCPClient) ReConnect() network.IConn {
 }
 
 func (c *TCPClient) Close() {
+	c.cancel()
 	//设置当前客户端的状态
 	c.reConnCallBackFunc(c.conn)
 	c.conn.Close()

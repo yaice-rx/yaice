@@ -1,6 +1,8 @@
 package network
 
-import "google.golang.org/protobuf/proto"
+import (
+	"google.golang.org/protobuf/proto"
+)
 
 type IConn interface {
 	GetGuid() uint64
