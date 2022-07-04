@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/yaice-rx/yaice/config"
 	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/network/kcpNetwork"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/router"
 	"google.golang.org/protobuf/proto"
@@ -16,23 +17,24 @@ var shutdown = make(chan bool, 1)
 type IService interface {
 	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
 	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int
-	Dial(packet network.IPacket, network string, address string, options network.IOptions,reConnCallBackFunc func(conn network.IConn)) network.IConn
+	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn)) network.IConn
 	Close()
 }
 
 type service struct {
-	cancel     context.CancelFunc
-	routerMgr  router.IRouter
-	configMgr  config.IConfig
+	cancel      context.CancelFunc
+	routerMgr   router.IRouter
+	configMgr   config.IConfig
 	ServiceType int
 }
+
 /**
  * @param endpoints 集群管理中心连接节点
  */
 func NewService() IService {
 	return &service{
-		routerMgr:  router.RouterMgr,
-		configMgr:  config.ConfInstance(),
+		routerMgr: router.RouterMgr,
+		configMgr: config.ConfInstance(),
 	}
 }
 
@@ -56,15 +58,15 @@ func (s *service) RegisterMQProto(mqProto interface{}, handler func(content []by
  * @param address string 地址
  * @param options 最大连接次数
  */
-func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions,reConnCallBackFunc func(conn network.IConn)) network.IConn {
+func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn)) network.IConn {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
 	switch network_ {
-	case "kcp":
-		break
+	case "kcpNetwork":
+		return kcpNetwork.NewClient(packet, address, options, reConnCallBackFunc).Connect()
 	case "tcp", "tcp4", "tcp6":
-		return tcp.NewClient(packet, address, options,reConnCallBackFunc).Connect()
+		return tcp.NewClient(packet, address, options, reConnCallBackFunc).Connect()
 	}
 	return nil
 }
@@ -81,15 +83,15 @@ func (s *service) Listen(packet network.IPacket, network_ string, startPort int,
 		packet = tcp.NewPacket()
 	}
 	switch network_ {
-	case "kcp":
-		break
+	case "kcpNetwork":
+		serverMgr := kcpNetwork.NewServer()
+		return serverMgr.Listen(packet, startPort, endPort, isAllowConnFunc)
 	case "tcp", "tcp4", "tcp6":
 		serverMgr := tcp.NewServer()
 		return serverMgr.Listen(packet, startPort, endPort, isAllowConnFunc)
 	}
 	return 0
 }
-
 
 /**
  * 关闭集群服务
