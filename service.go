@@ -58,7 +58,7 @@ func (s *service) RegisterMQProto(mqProto interface{}, handler func(content []by
  * @param address string 地址
  * @param options 最大连接次数
  */
-func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, callFunc func(conn network.IConn)) network.IConn {
+func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, callFunc func(conn network.IConn, err error)) network.IConn {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
