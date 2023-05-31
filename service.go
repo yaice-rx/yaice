@@ -17,7 +17,7 @@ var shutdown = make(chan bool, 1)
 type IService interface {
 	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
 	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int
-	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn)) network.IConn
+	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) network.IConn
 	Close()
 }
 

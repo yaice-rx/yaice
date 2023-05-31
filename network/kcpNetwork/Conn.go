@@ -54,7 +54,7 @@ func NewConn(serve interface{}, conn *kcp.UDPSession, pkg_ network.IPacket, opt 
 			//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
 			if conn_.type_ == network.Serve_Client && nil != err {
 				if conn_.serve.(*KCPClient).dialRetriesCount > conn_.serve.(*KCPClient).opt.GetMaxRetires() && err != nil {
-					conn_.serve.(*KCPClient).Close(err.Error())
+					conn_.serve.(*KCPClient).Close(err)
 				}
 				if conn_.serve.(*KCPClient).dialRetriesCount <= conn_.serve.(*KCPClient).opt.GetMaxRetires() && err != nil {
 					conn_.serve.(*KCPClient).dialRetriesCount += 1
@@ -146,7 +146,7 @@ func (c *Conn) Start() {
 			if err != nil {
 				if err != io.EOF {
 					if c.type_ == network.Serve_Client {
-						c.serve.(*KCPClient).Close(err.Error())
+						c.serve.(*KCPClient).Close(err)
 					}
 					return
 				}

@@ -80,7 +80,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, opt netw
 	return conn_
 }
 
-func (c *Conn) Close(reason string) {
+func (c *Conn) Close() {
 	c.isClosed = true
 	//如果当前链接已经关闭
 	if c.type_ == network.Serve_Server {
@@ -152,7 +152,7 @@ func (c *Conn) Start() {
 			if err != nil {
 				if err != io.EOF {
 					if c.type_ == network.Serve_Client {
-						c.serve.(*TCPClient).Close(err.Error())
+						c.serve.(*TCPClient).Close(err)
 					}
 					return
 				}
