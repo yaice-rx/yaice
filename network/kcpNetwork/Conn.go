@@ -8,7 +8,6 @@ import (
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/router"
 	"github.com/yaice-rx/yaice/utils"
-	"go.uber.org/zap"
 	"google.golang.org/protobuf/proto"
 	"io"
 	"sync/atomic"
@@ -53,20 +52,18 @@ func NewConn(serve interface{}, conn *kcp.UDPSession, pkg_ network.IPacket, opt 
 		LOOP:
 			_, err := conn_.conn.Write(data)
 			//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
-			if conn_.type_ == network.Serve_Client {
+			if conn_.type_ == network.Serve_Client && nil != err {
 				if conn_.serve.(*KCPClient).dialRetriesCount > conn_.serve.(*KCPClient).opt.GetMaxRetires() && err != nil {
-					conn_.serve.(*KCPClient).Close()
-					log.AppLogger.Info("发送失败，原因：" + err.Error())
+					conn_.serve.(*KCPClient).Close(err.Error())
 				}
 				if conn_.serve.(*KCPClient).dialRetriesCount <= conn_.serve.(*KCPClient).opt.GetMaxRetires() && err != nil {
-					atomic.AddInt32(&(conn_.serve.(*KCPClient).dialRetriesCount), 1)
+					conn_.serve.(*KCPClient).dialRetriesCount += 1
 					goto LOOP
 				}
-				if err != nil {
-					atomic.SwapInt32(&(conn_.serve.(*KCPClient).dialRetriesCount), 0)
-				}
 			}
-
+			if conn_.type_ == network.Serve_Client {
+				conn_.serve.(*KCPClient).dialRetriesCount = 0
+			}
 		}
 	}(conn_)
 	go func(conn_ *Conn) {
@@ -105,14 +102,12 @@ func (c *Conn) Send(message proto.Message) error {
 	select {
 	case <-c.ctx.Done():
 		c.isClosed = true
-		log.AppLogger.Info("send msg(proto) channel It has been closed ... ")
 		return errors.New("send msg(proto) channel It has been closed ... ")
 	default:
 		if c.isClosed != true {
 			data, err := proto.Marshal(message)
 			protoId := utils.ProtocalNumber(utils.GetProtoName(message))
 			if err != nil {
-				log.AppLogger.Error("发送消息时，序列化失败 : "+err.Error(), zap.Int32("MessageId", protoId))
 				return err
 			}
 			c.sendQueue <- c.pkg.Pack(network.TransitData{protoId, data}, c.isPos)
@@ -126,7 +121,6 @@ func (c *Conn) SendByte(message []byte) error {
 	select {
 	case <-c.ctx.Done():
 		c.isClosed = true
-		log.AppLogger.Info("send msg(byte[]) channel It has been closed ... ")
 		return errors.New("send msg(proto) channel It has been closed ... ")
 	default:
 		if c.isClosed != true {
@@ -140,7 +134,6 @@ func (c *Conn) Start() {
 	for {
 		select {
 		case <-c.ctx.Done():
-			log.AppLogger.Info("conn It has been closed ... ")
 			return
 		default:
 			//读取限时
@@ -152,9 +145,8 @@ func (c *Conn) Start() {
 			_, err := io.ReadAtLeast(c.conn, headData[:4], 4) //io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
 			if err != nil {
 				if err != io.EOF {
-					log.AppLogger.Info("network io read data err:" + err.Error())
 					if c.type_ == network.Serve_Client {
-						c.serve.(*KCPClient).Close()
+						c.serve.(*KCPClient).Close(err.Error())
 					}
 					return
 				}
@@ -178,6 +170,7 @@ func (c *Conn) Start() {
 					}
 					continue
 				}
+				//调用外部解压方法
 				if func_ != nil {
 					func_(c)
 				}

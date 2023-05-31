@@ -58,15 +58,15 @@ func (s *service) RegisterMQProto(mqProto interface{}, handler func(content []by
  * @param address string 地址
  * @param options 最大连接次数
  */
-func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn)) network.IConn {
+func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, callFunc func(conn network.IConn)) network.IConn {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
 	switch network_ {
 	case "kcpNetwork":
-		return kcpNetwork.NewClient(packet, address, options, reConnCallBackFunc).Connect()
+		return kcpNetwork.NewClient(packet, address, options, callFunc).Connect()
 	case "tcp", "tcp4", "tcp6":
-		return tcp.NewClient(packet, address, options, reConnCallBackFunc).Connect()
+		return tcp.NewClient(packet, address, options, callFunc).Connect()
 	}
 	return nil
 }

@@ -11,25 +11,25 @@ import (
 )
 
 type KCPClient struct {
-	type_              network.ServeType
-	dialRetriesCount   int32
-	address            string
-	conn               network.IConn
-	packet             network.IPacket
-	opt                network.IOptions
-	ctx                context.Context
-	cancel             context.CancelFunc
-	reConnCallBackFunc func(conn network.IConn)
+	type_            network.ServeType
+	dialRetriesCount int32
+	address          string
+	conn             network.IConn
+	packet           network.IPacket
+	opt              network.IOptions
+	ctx              context.Context
+	cancel           context.CancelFunc
+	callFunc         func(conn network.IConn, err error)
 }
 
-func NewClient(packet network.IPacket, address string, opt network.IOptions, reConnCallBackFunc func(conn network.IConn)) network.IClient {
+func NewClient(packet network.IPacket, address string, opt network.IOptions, callFunc func(conn network.IConn, err error)) network.IClient {
 	c := &KCPClient{
-		type_:              network.Serve_Client,
-		address:            address,
-		packet:             packet,
-		opt:                opt,
-		dialRetriesCount:   0,
-		reConnCallBackFunc: reConnCallBackFunc,
+		type_:            network.Serve_Client,
+		address:          address,
+		packet:           packet,
+		opt:              opt,
+		dialRetriesCount: 0,
+		callFunc:         callFunc,
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	c.ctx = ctx
@@ -62,9 +62,9 @@ func (c *KCPClient) ReConnect() network.IConn {
 	return c.Connect()
 }
 
-func (c *KCPClient) Close() {
+func (c *KCPClient) Close(err error) {
 	c.cancel()
 	//设置当前客户端的状态
-	c.reConnCallBackFunc(c.conn)
+	c.callFunc(c.conn, err)
 	c.conn.Close()
 }

@@ -27,9 +27,9 @@ type Conn struct {
 	isPos        int64
 	sendQueue    chan []byte
 	receiveQueue chan network.TransitData
-	opt network.IOptions
-	ctx 		     context.Context
-	cancel 		     context.CancelFunc
+	opt          network.IOptions
+	ctx          context.Context
+	cancel       context.CancelFunc
 }
 
 func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, opt network.IOptions, type_ network.ServeType,
@@ -44,31 +44,32 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, opt netw
 		sendQueue:    make(chan []byte, 5000),
 		times:        time.Now().Unix(),
 		isClosed:     false,
-		opt: opt,
-		ctx:ctx,
-		cancel:cancelFunc,
+		opt:          opt,
+		ctx:          ctx,
+		cancel:       cancelFunc,
 	}
+	//数据写入
 	go func(conn_ *Conn) {
 		for data := range conn_.sendQueue {
-			LOOP:
-				_, err := conn_.conn.Write(data)
-				//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
-				if conn_.type_ == network.Serve_Client {
-					if  conn_.serve.(*TCPClient).dialRetriesCount > conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
-						conn_.serve.(*TCPClient).Close()
-						log.AppLogger.Info("发送失败，原因：" + err.Error())
-					}
-					if conn_.serve.(*TCPClient).dialRetriesCount <= conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
-						atomic.AddInt32(&(conn_.serve.(*TCPClient).dialRetriesCount),1)
-						goto LOOP
-					}
-					if  err != nil {
-						atomic.SwapInt32(&(conn_.serve.(*TCPClient).dialRetriesCount),0)
-					}
+		LOOP:
+			_, err := conn_.conn.Write(data)
+			//判断客户端，如果不是主动关闭，而是网络抖动的时候 多次连接
+			if conn_.type_ == network.Serve_Client && nil != err {
+				if conn_.serve.(*TCPClient).dialRetriesCount > conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
+					conn_.serve.(*TCPClient).Close(err)
 				}
-
+				if conn_.serve.(*TCPClient).dialRetriesCount <= conn_.serve.(*TCPClient).opt.GetMaxRetires() && err != nil {
+					conn_.serve.(*TCPClient).dialRetriesCount += 1
+					goto LOOP
+				}
+			}
+			//发送成功
+			if conn_.type_ == network.Serve_Client {
+				conn_.serve.(*TCPClient).dialRetriesCount = 0
+			}
 		}
 	}(conn_)
+	//数据读取
 	go func(conn_ *Conn) {
 		for data := range conn_.receiveQueue {
 			if data.MsgId != 0 {
@@ -79,7 +80,7 @@ func NewConn(serve interface{}, conn *net.TCPConn, pkg network.IPacket, opt netw
 	return conn_
 }
 
-func (c *Conn) Close() {
+func (c *Conn) Close(reason string) {
 	c.isClosed = true
 	//如果当前链接已经关闭
 	if c.type_ == network.Serve_Server {
@@ -103,9 +104,8 @@ func (c *Conn) GetConn() interface{} {
 //发送协议体
 func (c *Conn) Send(message proto.Message) error {
 	select {
-	case <- c.ctx.Done():
+	case <-c.ctx.Done():
 		c.isClosed = true
-		log.AppLogger.Info("send msg(proto) channel It has been closed ... ")
 		return errors.New("send msg(proto) channel It has been closed ... ")
 	default:
 		if c.isClosed != true {
@@ -124,15 +124,14 @@ func (c *Conn) Send(message proto.Message) error {
 //发送组装好的协议，但是加密始终是在组装包的时候完成加密功能
 func (c *Conn) SendByte(message []byte) error {
 	select {
-		case <-c.ctx.Done():
-			c.isClosed = true
-			log.AppLogger.Info("send msg(byte[]) channel It has been closed ... ")
-			return errors.New("send msg(proto) channel It has been closed ... ")
-		default:
-			if c.isClosed != true{
-				c.sendQueue <- message
-			}
-			return nil
+	case <-c.ctx.Done():
+		c.isClosed = true
+		return errors.New("send msg(proto) channel It has been closed ... ")
+	default:
+		if c.isClosed != true {
+			c.sendQueue <- message
+		}
+		return nil
 	}
 }
 
@@ -149,12 +148,11 @@ func (c *Conn) Start() {
 			}
 			//1 先读出流中的head部分
 			headData := make([]byte, c.pkg.GetHeadLen())
-			_, err := io.ReadAtLeast(c.conn, headData[:4], 4)//io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
+			_, err := io.ReadAtLeast(c.conn, headData[:4], 4) //io.ReadFull(c.conn, headData) //ReadFull 会把msg填充满为止
 			if err != nil {
 				if err != io.EOF {
-					log.AppLogger.Info("network io read data err:" + err.Error())
 					if c.type_ == network.Serve_Client {
-						c.serve.(*TCPClient).Close()
+						c.serve.(*TCPClient).Close(err.Error())
 					}
 					return
 				}
