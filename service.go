@@ -14,6 +14,7 @@ type IService interface {
 	RegisterProtoHandler(message proto.Message, handler func(conn network.IConn, content []byte))
 	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) (network.IServer, int)
 	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) network.IClient
+	ProtoHandler(msgData network.TransitData)
 }
 
 type service struct {
@@ -40,6 +41,15 @@ func NewService() IService {
 //	@param handler
 func (s *service) RegisterProtoHandler(message proto.Message, handler func(conn network.IConn, content []byte)) {
 	s.routerMgr.AddRouter(message, handler)
+}
+
+// ProtoHandler
+//
+//	@Description: 消息处理
+//	@receiver s
+//	@param msgData
+func (s *service) ProtoHandler(msgData network.TransitData) {
+	s.routerMgr.ExecRouterFunc(msgData)
 }
 
 // Dial
