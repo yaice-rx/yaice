@@ -13,7 +13,7 @@ import (
 type IService interface {
 	RegisterProtoHandler(message proto.Message, handler func(conn network.IConn, content []byte))
 	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) (network.IServer, int)
-	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) network.IConn
+	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) network.IClient
 }
 
 type service struct {
@@ -52,14 +52,15 @@ func (s *service) RegisterProtoHandler(message proto.Message, handler func(conn 
 //	@param options 传递参数
 //	@param callFunc 回调函数
 //	@return network.IConn
-func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, callFunc func(conn network.IConn, err error)) network.IConn {
+func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, callFunc func(conn network.IConn, err error)) network.IClient {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
 	switch network_ {
 	case "tcp", "tcp4", "tcp6":
 		client := tcp.NewClient(packet, address, options, callFunc)
-		return client.Connect()
+		client.Connect()
+		return client
 	}
 	return nil
 }
