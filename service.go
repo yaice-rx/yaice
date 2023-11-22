@@ -2,7 +2,6 @@ package yaice
 
 import (
 	"context"
-	"errors"
 	"github.com/yaice-rx/yaice/network"
 	"github.com/yaice-rx/yaice/network/tcp"
 	"github.com/yaice-rx/yaice/router"
@@ -13,17 +12,13 @@ import (
 
 type IService interface {
 	RegisterProtoHandler(message proto.Message, handler func(conn network.IConn, content []byte))
-	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int
-	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) error
-	Close()
-	Ticker(currentMillTime uint64)
+	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) (network.IServer, int)
+	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) network.IConn
 }
 
 type service struct {
 	cancel      context.CancelFunc
 	routerMgr   router.IRouter
-	server      network.IServer
-	client      network.IClient
 	serviceType int
 }
 
@@ -57,16 +52,16 @@ func (s *service) RegisterProtoHandler(message proto.Message, handler func(conn 
 //	@param options 传递参数
 //	@param callFunc 回调函数
 //	@return network.IConn
-func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, callFunc func(conn network.IConn, err error)) error {
+func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, callFunc func(conn network.IConn, err error)) network.IConn {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
 	switch network_ {
 	case "tcp", "tcp4", "tcp6":
-		s.client = tcp.NewClient(packet, address, options, callFunc)
-		return nil
+		client := tcp.NewClient(packet, address, options, callFunc)
+		return client.Connect()
 	}
-	return errors.New("not found networkType")
+	return nil
 }
 
 // Listen
@@ -79,45 +74,14 @@ func (s *service) Dial(packet network.IPacket, network_ string, address string, 
 //	@param endPort	监听端口范围结束
 //	@param isAllowConnFunc 是否允许连接
 //	@return int
-func (s *service) Listen(packet network.IPacket, network_ string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int {
+func (s *service) Listen(packet network.IPacket, network_ string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) (network.IServer, int) {
 	if packet == nil {
 		packet = tcp.NewPacket()
 	}
 	switch network_ {
 	case "tcp", "tcp4", "tcp6":
-		s.server = tcp.NewServer()
-		return s.server.Listen(packet, startPort, endPort)
+		server := tcp.NewServer()
+		return server, server.Listen(packet, startPort, endPort)
 	}
-	return 0
-}
-
-// Ticker
-//
-//	@Description: 定时ticker
-//	@receiver s
-//	@param currentMillTime
-func (s *service) Ticker(currentMillTime uint64) {
-	if s.server != nil {
-		for data := range s.server.GetReceiveQueue() {
-			s.routerMgr.ExecRouterFunc(data)
-		}
-	}
-	if s.client != nil {
-		for data := range s.client.GetReceiveQueue() {
-			s.routerMgr.ExecRouterFunc(data)
-		}
-	}
-}
-
-// Close
-//
-//	@Description: 关闭服务
-//	@receiver s
-func (s *service) Close() {
-	if s.server != nil {
-		s.server.Close()
-	}
-	if s.client != nil {
-		s.client.Close()
-	}
+	return nil, 0
 }
