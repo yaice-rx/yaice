@@ -14,11 +14,7 @@ import (
 type IService interface {
 	RegisterProtoHandler(message proto.Message, handler func(conn network.IConn, content []byte))
 	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int
-<<<<<<< HEAD
 	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) error
-=======
-	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) network.IConn
->>>>>>> 10c1d274427ec933caf8491712875654a1c3a10e
 	Close()
 	Ticker(currentMillTime uint64)
 }
