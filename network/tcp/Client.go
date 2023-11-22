@@ -74,14 +74,14 @@ LOOP:
 //	@receiver c
 //	@param message
 //	@return error
-func (c *Client) SendProtobuf(message proto.Message) error {
+func (c *Client) SendProtobuf(sessionGuid uint64, message proto.Message) error {
 	data, err := proto.Marshal(message)
 	protoId := utils.ProtocalNumber(utils.GetProtoName(message))
 	if err != nil {
 		log.AppLogger.Error("发送消息时，序列化失败 : "+err.Error(), zap.Int32("MessageId", protoId))
 		return err
 	}
-	c.sendQueue <- c.packet.Pack(network.TransitData{MsgId: protoId, Data: data}, c.conn.GetServerAck())
+	c.sendQueue <- c.packet.Pack(sessionGuid, c.conn.GetServerAck(), network.TransitData{MsgId: protoId, Data: data})
 	return nil
 }
 
@@ -91,7 +91,7 @@ func (c *Client) SendProtobuf(message proto.Message) error {
 //	@receiver c
 //	@param message
 //	@return error
-func (c *Client) SendByte(message []byte) error {
+func (c *Client) SendByte(sessionGuid uint64, message []byte) error {
 	c.sendQueue <- message
 	return nil
 }

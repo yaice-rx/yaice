@@ -93,7 +93,7 @@ func (s *Server) SendProtobuf(sessionGuid uint64, message proto.Message) error {
 			log.AppLogger.Error("发送消息时，序列化失败 : "+err.Error(), zap.Int32("MessageId", protoId))
 			return err
 		}
-		conn.GetSendChannel() <- s.pkg.Pack(network.TransitData{MsgId: protoId, Data: data}, conn.GetServerAck())
+		conn.GetSendChannel() <- s.pkg.Pack(sessionGuid, conn.GetServerAck(), network.TransitData{MsgId: protoId, Data: data})
 		return nil
 	}
 	return errors.New("not found session")

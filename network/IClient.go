@@ -6,6 +6,6 @@ type IClient interface {
 	Connect() IConn
 	Close()
 	GetReceiveQueue() chan TransitData
-	SendByte(message []byte) error
-	SendProtobuf(message proto.Message) error
+	SendByte(sessionGuid uint64, message []byte) error
+	SendProtobuf(sessionGuid uint64, message proto.Message) error
 }

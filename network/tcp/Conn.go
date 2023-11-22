@@ -87,15 +87,12 @@ func (c *Conn) Receive() {
 					break
 				}
 				//解压网络数据包
-				msgData, err, func_ := c.pkg.Unpack(contentData)
+				msgData, err := c.pkg.Unpack(contentData)
 				if msgData == nil {
 					if err != nil {
 						log.AppLogger.Info("network io read data err - 1:" + err.Error())
 					}
 					continue
-				}
-				if func_ != nil {
-					func_(c)
 				}
 				c.ClientAck = msgData.GetIsPos()
 				//写入通道数据
