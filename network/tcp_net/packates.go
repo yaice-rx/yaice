@@ -1,9 +1,10 @@
-package tcp
+package tcp_net
 
 import (
 	"bytes"
 	"encoding/binary"
-	"github.com/yaice-rx/yaice/network"
+	"github.com/yaice-rx/yaice/core"
+	"github.com/yaice-rx/yaice/packates"
 	"github.com/yaice-rx/yaice/utils"
 )
 
@@ -15,7 +16,7 @@ const (
 type packet struct {
 }
 
-func NewPacket() network.IPacket {
+func NewPacket() packates.IPacket {
 	return &packet{}
 }
 
@@ -23,22 +24,22 @@ func (dp *packet) GetHeadLen() uint32 {
 	return ConstMsgLength
 }
 
-//封包
-func (dp *packet) Pack(msg network.TransitData,ispos int64) []byte {
+// 封包
+func (dp *packet) Pack(msg packates.ProtocolContentData, ispos int64) []byte {
 	msgLength := int32(len(msg.Data) + ConstMsgIdLen)
 	dataLen := utils.IntToBytes(msgLength)
 	dataId := utils.IntToBytes(msg.MsgId)
 	return append(append(dataLen, dataId...), msg.Data...)
 }
 
-//解包
-func (dp *packet) Unpack(binaryData []byte) (network.IMessage, error, func(conn network.IConn)) {
+// 解包
+func (dp *packet) Unpack(binaryData []byte) (packates.IProtocolMessage, error, func(conn core.Connection)) {
 	//创建一个从输入二进制数据的ioReader
 	dataBuff := bytes.NewReader(binaryData)
 	//只解压head的信息，得到dataLen和msgID
-	msg := &Message{}
+	msg := &packates.ProtocolContentData{}
 	//读msgID
-	if err := binary.Read(dataBuff, binary.BigEndian, &msg.ID); err != nil {
+	if err := binary.Read(dataBuff, binary.BigEndian, &msg.MsgId); err != nil {
 		return nil, err, nil
 	}
 	//读msgID
