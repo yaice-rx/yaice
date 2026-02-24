@@ -107,7 +107,7 @@ func (m *Manager) GetMongoDB() *mongo.Client {
 func (m *Manager) connectMongoDB(ctx context.Context) error {
 	mongoCfg := m.config.MongoDB
 
-	client, err := mongo.Connect(ctx, options.Client().
+	client, err := mongo.Connect(options.Client().
 		ApplyURI(mongoCfg.URI).
 		SetMaxPoolSize(mongoCfg.MaxPoolSize).
 		SetMinPoolSize(mongoCfg.MinPoolSize))
