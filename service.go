@@ -1,101 +1,189 @@
-package yaice
+package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/yaice-rx/yaice/config"
+	"github.com/yaice-rx/yaice/core"
+	"github.com/yaice-rx/yaice/logger"
 	"github.com/yaice-rx/yaice/network"
-	"github.com/yaice-rx/yaice/network/kcpNetwork"
-	"github.com/yaice-rx/yaice/network/tcp"
-	"github.com/yaice-rx/yaice/router"
-	"google.golang.org/protobuf/proto"
-	"reflect"
+	"github.com/yaice-rx/yaice/packates"
+	"go.uber.org/zap"
+	"sync"
+	"sync/atomic"
+	"time"
 )
 
-//服务运行状态
-var shutdown = make(chan bool, 1)
+// Service 服务结构体
+type Service struct {
+	name       string
+	version    string
+	state      State
+	stateMutex sync.RWMutex
+	startTime  time.Time
+	uptime     atomic.Int64
+	config     *config.Config
+	logger     *logger.Logger
+	networkMgr *network.Manager
+	ctx        context.Context
+	cancel     context.CancelFunc
+	wg         sync.WaitGroup
+	packet     packates.IPacket
 
-type IService interface {
-	AddRouter(message proto.Message, handler func(conn network.IConn, content []byte))
-	Listen(packet network.IPacket, network string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int
-	Dial(packet network.IPacket, network string, address string, options network.IOptions, reConnCallBackFunc func(conn network.IConn, err error)) network.IConn
-	Close()
+	// GlobalMQ配置
+	globalMQConfig *config.GlobalMQConfig
+	globalMQ       *core.GlobalMQ
 }
 
-type service struct {
-	cancel      context.CancelFunc
-	routerMgr   router.IRouter
-	configMgr   config.IConfig
-	ServiceType int
-}
-
-/**
- * @param endpoints 集群管理中心连接节点
- */
-func NewService() IService {
-	return &service{
-		routerMgr: router.RouterMgr,
-		configMgr: config.ConfInstance(),
+// NewService 创建服务实例
+func NewService(name, version string, cfg *config.Config, packet packates.IPacket) *Service {
+	ctx, cancel := context.WithCancel(context.Background())
+	return &Service{
+		name:           name,
+		version:        version,
+		state:          StateStopped,
+		startTime:      time.Now(),
+		config:         cfg,
+		logger:         logger.NewLogger(cfg.Log),
+		ctx:            ctx,
+		cancel:         cancel,
+		packet:         packet,
+		globalMQConfig: cfg.GlobalMQConfig,
 	}
 }
 
-/**
- * @param message 消息传递结构体
- * @param handler func(conn network.IConn, content []byte) 网络调用函数
- */
-func (s *service) AddRouter(message proto.Message, handler func(conn network.IConn, content []byte)) {
-	s.routerMgr.AddRouter(message, handler)
-}
+// Start 启动服务
+func (s *Service) Start() error {
+	s.stateMutex.Lock()
+	defer s.stateMutex.Unlock()
 
-func (s *service) RegisterMQProto(mqProto interface{}, handler func(content []byte)) {
-	val := reflect.Indirect(reflect.ValueOf(mqProto))
-	s.routerMgr.RegisterMQ(val.Field(0).Type().Name(), handler)
-}
+	if s.state != StateStopped {
+		return fmt.Errorf("service is already running")
+	}
 
-/**
- * 连接网络
- * @param network.IPacket  packet 网络包的协议处理方式，如果传输为nil，则采用默认的方式
- * @param network string 网络连接方式
- * @param address string 地址
- * @param options 最大连接次数
- */
-func (s *service) Dial(packet network.IPacket, network_ string, address string, options network.IOptions, callFunc func(conn network.IConn, err error)) network.IConn {
-	if packet == nil {
-		packet = tcp.NewPacket()
+	s.state = StateStarting
+	s.logger.Info("Starting service...",
+		zap.String("name", s.name),
+		zap.String("version", s.version))
+
+	// 初始化GlobalMQ
+	if err := s.initGlobalMQ(); err != nil {
+		return fmt.Errorf("failed to initialize GlobalMQ: %w", err)
 	}
-	switch network_ {
-	case "kcpNetwork":
-		return kcpNetwork.NewClient(packet, address, options, callFunc).Connect()
-	case "tcp", "tcp4", "tcp6":
-		return tcp.NewClient(packet, address, options, callFunc).Connect()
+
+	// 初始化网络管理器
+	if err := s.initNetworkManager(); err != nil {
+		return fmt.Errorf("failed to initialize network manager: %w", err)
 	}
+
+	s.state = StateRunning
+	s.startTime = time.Now()
+
+	s.logger.Info("Service started successfully",
+		zap.String("name", s.name),
+		zap.String("version", s.version),
+		zap.Time("start_time", s.startTime))
+
 	return nil
 }
 
-/**
- * @param network.IPacket  packet 网络包的协议处理方式，如果传输为nil，则采用默认的方式
- * @param string network 网络连接方式
- * @param int startPort 监听端口范围开始
- * @param int endPort 监听端口范围结束
- * @param func isAllowConnFunc  限制连接数，超过连接数的时候，由上层逻辑通知，底层不予维护
- */
-func (s *service) Listen(packet network.IPacket, network_ string, startPort int, endPort int, isAllowConnFunc func(conn interface{}) bool) int {
-	if packet == nil {
-		packet = tcp.NewPacket()
+// initGlobalMQ 初始化GlobalMQ
+func (s *Service) initGlobalMQ() error {
+	if s.globalMQConfig == nil || !s.globalMQConfig.Enabled {
+		s.logger.Info("GlobalMQ is not enabled")
+		return nil
 	}
-	switch network_ {
-	case "kcpNetwork":
-		serverMgr := kcpNetwork.NewServer()
-		return serverMgr.Listen(packet, startPort, endPort, isAllowConnFunc)
-	case "tcp", "tcp4", "tcp6":
-		serverMgr := tcp.NewServer()
-		return serverMgr.Listen(packet, startPort, endPort, isAllowConnFunc)
-	}
-	return 0
+
+	s.globalMQ = core.GetGlobalMQWithConfig(
+		s.ctx,
+		int32(s.globalMQConfig.FrameRate),
+		int32(s.globalMQConfig.MaxWorkers),
+		s.globalMQConfig.QueueSize,
+	)
+
+	// 启动GlobalMQ worker
+	s.globalMQ.StartWorker(s.globalMQConfig.MaxWorkers)
+
+	s.logger.Info("GlobalMQ initialized",
+		zap.Int32("frame_rate", int32(s.globalMQConfig.FrameRate)),
+		zap.Int32("max_workers", int32(s.globalMQConfig.MaxWorkers)),
+		zap.Int("queue_size", s.globalMQConfig.QueueSize))
+
+	return nil
 }
 
-/**
- * 关闭集群服务
- */
-func (s *service) Close() {
-
+// initNetworkManager 初始化网络管理器
+func (s *Service) initNetworkManager() error {
+	s.networkMgr = network.NewManager(s.ctx, s.config.Network, s.logger, s.packet, s.globalMQ.GetGlobalMQChannel())
+	// 启动网络管理器
+	if err := s.networkMgr.Start(); err != nil {
+		return fmt.Errorf("failed to start network manager: %w", err)
+	}
+	s.logger.Info("Network manager started successfully")
+	return nil
 }
+
+// RegisterGlobalMQHandler 注册GlobalMQ消息处理器
+func (s *Service) RegisterGlobalMQHandler(msgID int32, handler core.MessageHandler) error {
+	if s.globalMQ == nil {
+		return fmt.Errorf("GlobalMQ is not initialized")
+	}
+
+	s.globalMQ.RegisterHandler(msgID, handler)
+	s.logger.Debug("GlobalMQ handler registered",
+		zap.Int32("msg_id", msgID))
+
+	return nil
+}
+
+// RegisterGlobalMQHandlerFunc 注册GlobalMQ消息处理器函数
+func (s *Service) RegisterGlobalMQHandlerFunc(msgID int32, handlerFunc core.HandlerFunc) error {
+	return s.RegisterGlobalMQHandler(msgID, handlerFunc)
+}
+
+// GetGlobalMQ 获取GlobalMQ实例
+func (s *Service) GetGlobalMQ() *core.GlobalMQ {
+	return s.globalMQ
+}
+
+// Stop 停止服务
+func (s *Service) Stop() error {
+	s.stateMutex.Lock()
+	defer s.stateMutex.Unlock()
+
+	if s.state != StateRunning {
+		return fmt.Errorf("service is not running")
+	}
+
+	s.state = StateStopping
+	s.logger.Info("Stopping service...")
+
+	// 停止网络管理器
+	if s.networkMgr != nil {
+		if err := s.networkMgr.Stop(s.ctx); err != nil {
+			s.logger.Error("Failed to stop network manager", zap.Error(err))
+		}
+	}
+	// 取消上下文
+	s.cancel()
+	// 等待所有goroutine结束
+	s.wg.Wait()
+	s.state = StateStopped
+	s.uptime.Store(int64(time.Since(s.startTime).Seconds()))
+
+	s.logger.Info("Service stopped successfully",
+		zap.Duration("uptime", time.Since(s.startTime)))
+
+	return nil
+}
+
+// State 服务状态枚举
+type State int
+
+const (
+	StateStopped State = iota
+	StateStarting
+	StateRunning
+	StateStopping
+	StateError
+)

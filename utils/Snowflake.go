@@ -2,6 +2,7 @@ package utils
 
 import (
 	"errors"
+	"github.com/yaice-rx/yaice/logger"
 	"strconv"
 	"sync"
 	"time"
@@ -53,6 +54,14 @@ type SnowflakeIdWorker struct {
 	workerId      int64      // 工作机器ID(0~31)
 	datacenterId  int64      //数据中心ID(0~31)
 	sequence      int64      // 毫秒内序列(0~4095)
+}
+
+func initSnowflake() {
+	var err error
+	snowflakeInstance, err = CreateSnowflakeWorker(1, 1)
+	if err != nil {
+		logger.AppLogger.Error("Failed to initialize snowflake: " + err.Error())
+	}
 }
 
 /*
